@@ -1,0 +1,9 @@
+Big consumer update.
+• Results shown as a per-ear chart; enter professional test results manually
+• Multiple saved profiles (history) with switching
+• Per-ear stereo assist; live volume while running
+• Environment presets: standard / conversation / outdoors
+• Quick-settings tile; auto-stop when headphones disconnect; speaker feedback warning
+• Experimental media EQ for other apps' audio
+• New launcher icon, translatable strings, About screen
+Not a medical device; alpha — not yet validated on real hardware.
