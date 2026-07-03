@@ -171,6 +171,8 @@ private fun SettingsScreen(onBack: () -> Unit, rootViewModel: RootViewModel = hi
             onPreview = { rootViewModel.previewComfort(root.comfortCeiling) },
         )
 
+        MediaEqCard(state = root, onToggle = rootViewModel::setMediaEq)
+
         AboutCard()
 
         DisclaimerCard(modifier = Modifier.padding(top = 24.dp))
@@ -200,6 +202,46 @@ private fun ComfortCalibration(ceiling: Float, onChange: (Float) -> Unit, onPrev
             )
             OutlinedButton(onClick = onPreview, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.settings_comfort_preview))
+            }
+        }
+    }
+}
+
+@Composable
+private fun MediaEqCard(state: RootUiState, onToggle: (Boolean) -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().padding(top = 24.dp)) {
+        Column(Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.media_eq_title), style = MaterialTheme.typography.titleSmall)
+                Switch(
+                    checked = state.mediaEqEnabled,
+                    onCheckedChange = onToggle,
+                    enabled = state.mediaEqSupported && state.hasProfile,
+                )
+            }
+            Text(
+                stringResource(R.string.media_eq_desc),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            val status =
+                when {
+                    !state.mediaEqSupported -> stringResource(R.string.media_eq_unsupported)
+                    !state.hasProfile -> stringResource(R.string.media_eq_no_profile)
+                    state.mediaEqFailed -> stringResource(R.string.media_eq_failed)
+                    else -> null
+                }
+            if (status != null) {
+                Text(
+                    status,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
         }
     }

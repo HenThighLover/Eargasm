@@ -33,10 +33,7 @@ constructor(
     /** Prepare the controller config from the active profile. Returns true if ready. */
     suspend fun prepare(): Boolean {
         val profile = profileRepository.observeActiveProfile().first() ?: return false
-        val rightFit = earCurve(profile, Ear.RIGHT)
-        val leftFit = earCurve(profile, Ear.LEFT)
-        val right = rightFit ?: leftFit ?: return false
-        val left = leftFit ?: rightFit ?: return false
+        val (left, right) = earCurves(profile) ?: return false
         val ceiling = settingsRepository.observeComfortCeiling().first()
         val preset = AssistPreset.fromName(settingsRepository.observeAssistPreset().first())
         controller.configure(
@@ -49,6 +46,20 @@ constructor(
             ),
         )
         return true
+    }
+
+    /** Per-ear curves (left, right) for the active profile, or null if none fit. */
+    suspend fun activeEarCurves(): Pair<GainCurve, GainCurve>? {
+        val profile = profileRepository.observeActiveProfile().first() ?: return null
+        return earCurves(profile)
+    }
+
+    private fun earCurves(profile: HearingProfile): Pair<GainCurve, GainCurve>? {
+        val rightFit = earCurve(profile, Ear.RIGHT)
+        val leftFit = earCurve(profile, Ear.LEFT)
+        val right = rightFit ?: leftFit ?: return null
+        val left = leftFit ?: rightFit ?: return null
+        return left to right
     }
 
     private fun earCurve(profile: HearingProfile, ear: Ear): GainCurve? =

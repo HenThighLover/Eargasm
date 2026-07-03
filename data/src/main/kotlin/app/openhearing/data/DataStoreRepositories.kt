@@ -24,6 +24,7 @@ private object Keys {
     val HIGH_CONTRAST = booleanPreferencesKey("high_contrast")
     val COMFORT_CEILING = floatPreferencesKey("comfort_ceiling")
     val ASSIST_PRESET = stringPreferencesKey("assist_preset")
+    val MEDIA_EQ_ENABLED = booleanPreferencesKey("media_eq_enabled")
     val PROFILES = stringPreferencesKey("profiles")
     val ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
 
@@ -60,6 +61,12 @@ class DataStoreSettingsRepository(private val dataStore: DataStore<Preferences>)
 
     override suspend fun setAssistPreset(name: String) {
         dataStore.edit { it[Keys.ASSIST_PRESET] = name }
+    }
+
+    override fun observeMediaEqEnabled(): Flow<Boolean> = dataStore.data.map { it[Keys.MEDIA_EQ_ENABLED] ?: false }
+
+    override suspend fun setMediaEqEnabled(enabled: Boolean) {
+        dataStore.edit { it[Keys.MEDIA_EQ_ENABLED] = enabled }
     }
 
     private companion object {

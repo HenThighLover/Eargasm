@@ -31,4 +31,9 @@ interface SettingsRepository {
     fun observeAssistPreset(): Flow<String>
 
     suspend fun setAssistPreset(name: String)
+
+    /** Experimental media EQ (profile applied to other apps' audio) on/off. */
+    fun observeMediaEqEnabled(): Flow<Boolean>
+
+    suspend fun setMediaEqEnabled(enabled: Boolean)
 }
