@@ -34,9 +34,10 @@ Phases 0,1,2,4,5 plus consumer phases A,B are **built, unit-tested**. The app is
 | 5 Release build, signing, privacy, F-Droid metadata | ✅ done |
 | A Consumer polish (icons, results chart, translatable strings, regulatory copy, About, fastlane assets) | ✅ done 2026-07-02 |
 | B User-demanded features (live gain, manual audiogram entry, multi-profile history, disconnect auto-stop + speaker warning, QS tile) | ✅ done 2026-07-03 |
+| C Differentiators (per-ear stereo assist, environment presets, experimental media EQ) | ✅ done 2026-07-03 |
 | Calibration | ✅ comfort-ceiling proxy; true dB SPL needs a meter |
 
-**76 unit tests green; debug + release (R8) APKs build.** UI flows exercised on
+**88 unit tests green; debug + release (R8) APKs build.** UI flows exercised on
 an API 35 emulator (screenshots in fastlane metadata). Market research + launch
 playbook and the FDA "audiogram + fitting formula = device design" finding are
 recorded in [docs/PROJECT_LOG.md](docs/PROJECT_LOG.md) (Phase A entry).
@@ -60,7 +61,9 @@ recorded in [docs/PROJECT_LOG.md](docs/PROJECT_LOG.md) (Phase A entry).
   slots behind `FittingStrategy` later — see [docs/FITTING.md](docs/FITTING.md).
 - **Earbud-agnostic first.** Works fully on any headset; AirPods is a best-effort,
   clearly-`UNVERIFIED` enhancement, never a hard dependency.
-- **Assist is mono in v1** (mic is mono); per-ear stereo is future work.
+- **Assist is per-ear stereo** since Phase C: mono mic in, stereo out, one chain
+  (curve + limiter) per channel. Media EQ is experimental (deprecated
+  global-session effect; may not work on all OEMs).
 
 ## Module map (see [ARCHITECTURE.md](ARCHITECTURE.md))
 
@@ -118,10 +121,9 @@ export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home
 
 - **Run the Phase 1/2 device tests** ([docs/DEVICE_TESTING.md](docs/DEVICE_TESTING.md))
   on a real phone; fix whatever they surface. This is the launch gate.
-- **Phase C differentiators** (from market research, in value order): apply the
-  profile to media/calls (system-wide EQ — the "Headphone Accommodations for
-  Android" gap), per-ear stereo assist, environment presets, remote-mic mode,
-  multi-band WDRC.
+- **Remaining differentiators**: remote-mic mode framing, multi-band WDRC,
+  hardening the experimental media EQ (per-app session capture is the
+  non-deprecated alternative), localization, loudness-exposure timer.
 - **Launch sequence once device tests pass**: IzzyOnDroid → F-Droid (first
   hearing-assist app there) → Show HN (repo link + backstory comment) →
   r/fossdroid → hearingtracker forum → press tips (9to5Google, Android Police).

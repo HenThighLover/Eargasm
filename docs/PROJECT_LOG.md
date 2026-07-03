@@ -122,6 +122,26 @@ import, profiles, latency trust):
 All flows verified on the emulator (including tile toggle and live slider while
 running). 76 JVM tests green.
 
+### Phase C — Differentiators ✅ (2026-07-03)
+- **Per-ear stereo assist** (`StereoAssistChain`): mono mic duplicated to
+  interleaved stereo, one full `HearingAssistChain` per channel with its own
+  fitted curve and limiter — asymmetric hearing gets per-side correction (the
+  old mono path averaged both ears). `AndroidAudioEngine` gained a
+  mono-capture/stereo-output mode. Needs real-earbud confirmation (gate 1).
+- **Environment presets** (`AssistPreset`: standard/conversation/outdoors):
+  conversation adds +4 dB in the 1–4 kHz speech band on top of the fitted
+  curves; outdoors adds a 150 Hz low-cut (new `Biquad.highPass`). Persisted;
+  segmented-button selector on the assist screen; applies on next start.
+- **Experimental media EQ** (`MediaEqController` + pure `MediaEqPlanner`):
+  per-ear curves applied to other apps' audio via `DynamicsProcessing` on the
+  global mix (API 28+, deprecated platform behavior → explicitly experimental,
+  graceful "not supported" fallback, toggle snaps back off on failure). Boosts
+  capped at `SafetyConstants.MEDIA_EQ_MAX_BAND_GAIN_DB` (12 dB), never cuts,
+  effect-limiter always on. New normal permission: MODIFY_AUDIO_SETTINGS.
+  Settings-screen toggle; effect lives only while the process does.
+All emulator-verified (stereo session ran with conversation preset; media EQ
+toggle attach succeeded). 88 JVM tests green.
+
 ### Phase 3 — AirPods ❌ NOT STARTED
 The reverse-engineered (LibrePods/CAPod) protocol is `UNVERIFIED`. `:airpods-protocol`
 ships interfaces/models only. Needs real BLE/HCI capture on hardware and the

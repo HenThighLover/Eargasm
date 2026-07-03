@@ -4,12 +4,17 @@ result, and uses it to amplify quiet sound — like speech — in real time, wit
 headset or earbuds.
 
 Features:
-* Pure-tone hearing check (per ear, per frequency) with an adaptive staircase
-* A personalized amplification profile derived from your check
-* Real-time hearing assist: multi-band gain, dynamic-range compression, and a
-  feedback/howl guard
+* Pure-tone hearing check (per ear, per frequency) with an adaptive staircase,
+  shown as a chart — or enter results from a professional hearing test manually
+* A personalized sound profile per ear; save several and switch between them
+* Real-time hearing assist, per ear: multi-band gain, dynamic-range compression,
+  a feedback/howl guard, and live volume control while it runs
+* Environment presets (standard / conversation / outdoors) and a quick-settings
+  tile for one-tap on/off
+* Experimental: apply your sound profile to music and videos from other apps
 * A hard output-loudness limiter and a comfort calibration so sound never gets
-  uncomfortably loud, plus an always-available instant stop
+  uncomfortably loud, plus an always-available instant stop; assist stops
+  automatically if your headphones disconnect
 * Accessibility-first: large controls, high-contrast theme, scalable text
 * Completely private: no accounts, no analytics, no ads, no network access. Audio
   is processed on-device and never recorded or transmitted.
