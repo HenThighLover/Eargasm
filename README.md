@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/HMAKT99/OpenHearing/actions/workflows/ci.yml/badge.svg)](https://github.com/HMAKT99/OpenHearing/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/HMAKT99/OpenHearing?include_prereleases&label=Download)](https://github.com/HMAKT99/OpenHearing/releases/latest)
 
 Apple ships a hearing screening and a hearing-aid mode on AirPods Pro 2/3 — but
 locks them to iPhone/iPad/Mac. OpenHearing brings open hearing assistance to
@@ -30,41 +31,49 @@ personalized amplification profile, and boost quiet speech in real time.
 
 <table>
   <tr>
-    <td><img src="docs/images/onboarding.png" width="230" alt="Onboarding with safety disclaimer"></td>
     <td><img src="docs/images/home.png" width="230" alt="Home screen"></td>
-    <td><img src="docs/images/screening.png" width="230" alt="Pure-tone hearing screening"></td>
+    <td><img src="docs/images/check.png" width="230" alt="Pure-tone hearing check"></td>
+    <td><img src="docs/images/results.png" width="230" alt="Hearing check results chart"></td>
   </tr>
   <tr>
-    <td align="center"><b>Onboarding</b><br/>acknowledge the disclaimer</td>
     <td align="center"><b>Home</b></td>
-    <td align="center"><b>Screening</b><br/>heard / not-heard, with volume cap + stop</td>
+    <td align="center"><b>Hearing check</b><br/>heard / not-heard, with volume cap + stop</td>
+    <td align="center"><b>Results</b><br/>per-ear chart + suggested amplification</td>
   </tr>
   <tr>
-    <td><img src="docs/images/results.png" width="230" alt="Audiogram and prescribed gain"></td>
-    <td><img src="docs/images/assist.png" width="230" alt="Hearing assist screen"></td>
-    <td><img src="docs/images/settings.png" width="230" alt="Settings and comfort calibration"></td>
+    <td><img src="docs/images/manual-entry.png" width="230" alt="Manual entry of professional results"></td>
+    <td><img src="docs/images/assist.png" width="230" alt="Hearing assist with presets and profiles"></td>
+    <td><img src="docs/images/settings.png" width="230" alt="Settings with comfort calibration and media EQ"></td>
   </tr>
   <tr>
-    <td align="center"><b>Results</b><br/>audiogram + prescribed gain</td>
-    <td align="center"><b>Hearing assist</b></td>
-    <td align="center"><b>Settings</b><br/>comfort calibration, high contrast</td>
+    <td align="center"><b>Manual entry</b><br/>type in results from a professional test</td>
+    <td align="center"><b>Hearing assist</b><br/>live volume, presets, saved profiles</td>
+    <td align="center"><b>Settings</b><br/>comfort calibration, media EQ, high contrast</td>
   </tr>
 </table>
 
-> Screenshots are from the running app on an emulator (the screening values shown
-> are from an automated test pass). ▶️ A real demo video is coming after on-device
+> Screenshots are from the running app on an emulator (the check values shown are
+> from an automated test pass). ▶️ A real demo video is coming after on-device
 > validation.
 
 ---
 
 ## Features
 
-- 🎧 **Pure-tone hearing screening** — adaptive (Hughson–Westlake) staircase, per
-  ear, per frequency → an audiogram.
-- 🔊 **Real-time hearing assist** — multi-band gain from your audiogram, wide
-  dynamic-range compression, and a feedback/howl guard.
+- 🎧 **Pure-tone hearing check** — adaptive (Hughson–Westlake) staircase, per ear,
+  per frequency, shown as a per-ear chart — or **enter results from a professional
+  hearing test manually**.
+- 🔊 **Real-time hearing assist, per ear** — each ear gets its own fitted gain
+  curve (stereo), with wide dynamic-range compression, a feedback/howl guard, and
+  **live volume control while it runs**.
+- 🎚️ **Environment presets** — standard / conversation / outdoors, plus multiple
+  saved profiles you can switch between, and a quick-settings tile for one-tap
+  on/off.
+- 🎵 **Experimental media EQ** — apply your sound profile to music and videos from
+  other apps (device support varies).
 - 🛡️ **Safety first** — a hard look-ahead output limiter (extensively tested),
-  comfort calibration to cap loudness, and an always-available instant **Stop**.
+  comfort calibration to cap loudness, an always-available instant **Stop**, and
+  automatic stop if your headphones disconnect.
 - ♿ **Accessibility-first** — large controls, high-contrast theme, scalable text.
 - 🔒 **Private by design** — no accounts, no analytics, no ads, no network access.
   Audio is processed on-device and never recorded or transmitted.
@@ -74,20 +83,26 @@ personalized amplification profile, and boost quiet speech in real time.
 
 ## How to use
 
-1. **Install** — sideload the APK from [Releases](https://github.com/HMAKT99/OpenHearing/releases)
-   (F-Droid coming). 
+1. **Install** — grab the APK from
+   [Releases](https://github.com/HMAKT99/OpenHearing/releases/latest) (or add this
+   repo to [Obtainium](https://github.com/ImranR98/Obtainium) for auto-updates;
+   F-Droid submission in progress).
 2. **Read & accept** the safety disclaimer on first launch.
-3. **Run the hearing screening** — put on a headset in a quiet room, tap
-   **Run hearing screening → Start**. After each tone, tap **Yes, I heard it** or
+3. **Take the hearing check** — put on a headset in a quiet room, tap
+   **Hearing check → Start**. After each tone, tap **Yes, I heard it** or
    **No, I didn't**. The volume cap and **Stop / mute** are always on screen.
-4. **Review your results** — a per-ear audiogram and the prescribed amplification
-   (half-gain rule). This is saved as your profile.
-5. **Turn on Hearing assist** — grant microphone access, set the amplification
-   level, tap **Start assist**. Sound around you is amplified in real time; tap
-   **Stop assist** any time.
+   Already have results from a professional test? Use **Enter results manually**
+   instead.
+4. **Review your results** — a per-ear chart plus the suggested amplification
+   (half-gain rule). Each check is saved as a dated profile, so you can keep a
+   history and switch between profiles.
+5. **Turn on Hearing assist** — grant microphone access, pick an environment
+   preset, tap **Start assist**. Sound around you is amplified per ear in real
+   time; adjust the volume live, and tap **Stop assist** any time (or use the
+   quick-settings tile).
 6. **Calibrate comfort** (Settings) — preview the maximum loudness and lower it
-   until comfortable; that caps how loud assist mode can ever get. Toggle the
-   high-contrast theme here too.
+   until comfortable; that caps how loud assist mode can ever get. The optional
+   **media EQ** (experimental) and high-contrast theme live here too.
 
 See [docs/SAFETY.md](docs/SAFETY.md), [docs/CALIBRATION.md](docs/CALIBRATION.md),
 and [docs/DEVICE_TESTING.md](docs/DEVICE_TESTING.md) for details.
@@ -113,7 +128,8 @@ aapt dump permissions OpenHearing-<version>.apk
 
 The only permissions are `RECORD_AUDIO` (the mic for assist mode),
 `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_MICROPHONE` (to keep assist running with
-a visible notification), and `POST_NOTIFICATIONS`. See [docs/PRIVACY.md](docs/PRIVACY.md).
+a visible notification), `POST_NOTIFICATIONS`, and `MODIFY_AUDIO_SETTINGS` (required
+by Android for the optional media EQ effect). See [docs/PRIVACY.md](docs/PRIVACY.md).
 
 ---
 
