@@ -4,6 +4,7 @@ import app.openhearing.audiogram.GainCurve
 import app.openhearing.core.audio.AndroidAudioEngine
 import app.openhearing.core.audio.AudioFormat
 import app.openhearing.core.audio.dsp.HearingAssistChain
+import app.openhearing.core.audio.dsp.StereoAssistChain
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,10 +13,14 @@ import javax.inject.Singleton
 
 /** Immutable configuration for an assist session, derived from the active profile. */
 data class AssistConfig(
-    val gainCurve: GainCurve,
+    /** Per-ear fitted curves; left ear drives the left channel, right the right. */
+    val leftGainCurve: GainCurve,
+    val rightGainCurve: GainCurve,
     val masterGainDb: Double,
     /** Output ceiling (linear) from comfort calibration; the limiter enforces it. */
     val ceilingLinear: Float = HearingAssistChain.DEFAULT_CEILING_LINEAR,
+    /** Optional low-cut from the environment preset (e.g. outdoors wind cut). */
+    val highPassHz: Double? = null,
     val sampleRateHz: Int = DEFAULT_SAMPLE_RATE_HZ,
     val framesPerBlock: Int = DEFAULT_FRAMES_PER_BLOCK,
 ) {
@@ -42,7 +47,7 @@ constructor() {
     private var config: AssistConfig? = null
 
     @Volatile
-    private var chain: HearingAssistChain? = null
+    private var chain: StereoAssistChain? = null
 
     private val _running = MutableStateFlow(false)
     val running: StateFlow<Boolean> = _running.asStateFlow()
@@ -62,20 +67,26 @@ constructor() {
         chain?.setMasterGainDb(db)
     }
 
-    /** Build the chain from the current config and start the real-time loop. */
+    /** Build the per-ear chains from the current config and start the real-time loop. */
     fun startEngine() {
         val c = config ?: return
         if (engine.isRunning) return
+        fun earChain(curve: GainCurve) = HearingAssistChain(
+            gainCurve = curve,
+            sampleRateHz = c.sampleRateHz,
+            masterGainDb = c.masterGainDb,
+            ceilingLinear = c.ceilingLinear,
+            highPassHz = c.highPassHz,
+        )
         val newChain =
-            HearingAssistChain(
-                gainCurve = c.gainCurve,
-                sampleRateHz = c.sampleRateHz,
-                masterGainDb = c.masterGainDb,
-                ceilingLinear = c.ceilingLinear,
+            StereoAssistChain(
+                left = earChain(c.leftGainCurve),
+                right = earChain(c.rightGainCurve),
+                framesPerBlock = c.framesPerBlock,
             )
         chain = newChain
         engine.start(
-            AudioFormat(c.sampleRateHz, channelCount = 1, framesPerBlock = c.framesPerBlock),
+            AudioFormat(c.sampleRateHz, channelCount = 2, framesPerBlock = c.framesPerBlock),
             newChain,
         )
         _running.value = engine.isRunning

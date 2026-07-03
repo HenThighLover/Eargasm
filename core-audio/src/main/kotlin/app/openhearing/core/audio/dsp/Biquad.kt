@@ -78,6 +78,26 @@ class Biquad(
             return doubleArrayOf(f.b0, f.b1, f.b2, f.a1, f.a2)
         }
 
+        /**
+         * Second-order high-pass: attenuates content below [cutoffHz] (e.g. wind
+         * and handling rumble in the outdoors preset). RBJ cookbook design.
+         */
+        fun highPass(cutoffHz: Double, q: Double, sampleRateHz: Int): Biquad {
+            require(cutoffHz > 0 && cutoffHz < sampleRateHz / 2.0) { "cutoffHz out of range" }
+            require(q > 0) { "q must be positive" }
+            val w0 = 2.0 * PI * cutoffHz / sampleRateHz
+            val cosW0 = cos(w0)
+            val alpha = sin(w0) / (2.0 * q)
+
+            val b0 = (1.0 + cosW0) / 2.0
+            val b1 = -(1.0 + cosW0)
+            val b2 = (1.0 + cosW0) / 2.0
+            val a0 = 1.0 + alpha
+            val a1 = -2.0 * cosW0
+            val a2 = 1.0 - alpha
+            return Biquad(b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0)
+        }
+
         /** Default filter sharpness for the EQ bands (~1 octave). */
         const val DEFAULT_Q = 1.4
     }

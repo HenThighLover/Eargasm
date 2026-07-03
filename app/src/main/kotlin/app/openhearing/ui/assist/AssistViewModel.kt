@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.openhearing.assist.AssistController
 import app.openhearing.assist.AssistSessionFactory
+import app.openhearing.core.audio.dsp.AssistPreset
 import app.openhearing.data.HearingProfile
 import app.openhearing.data.ProfileRepository
+import app.openhearing.data.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,6 +24,7 @@ data class AssistUiState(
     val masterGainDb: Double = DEFAULT_MASTER_GAIN_DB,
     val profiles: List<HearingProfile> = emptyList(),
     val activeProfileId: String? = null,
+    val preset: AssistPreset = AssistPreset.STANDARD,
 ) {
     companion object {
         const val DEFAULT_MASTER_GAIN_DB = 12.0
@@ -41,6 +44,7 @@ class AssistViewModel
 constructor(
     private val controller: AssistController,
     private val profileRepository: ProfileRepository,
+    private val settingsRepository: SettingsRepository,
     private val sessionFactory: AssistSessionFactory,
 ) : ViewModel() {
     private val masterGain = MutableStateFlow(AssistUiState.DEFAULT_MASTER_GAIN_DB)
@@ -51,13 +55,15 @@ constructor(
             profileRepository.observeProfiles(),
             controller.running,
             masterGain,
-        ) { active, profiles, running, gain ->
+            settingsRepository.observeAssistPreset(),
+        ) { active, profiles, running, gain, presetName ->
             AssistUiState(
                 hasProfile = active?.audiogram?.thresholds?.isNotEmpty() == true,
                 running = running,
                 masterGainDb = active?.masterGainCapDb ?: gain,
                 profiles = profiles,
                 activeProfileId = active?.id,
+                preset = AssistPreset.fromName(presetName),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AssistUiState())
 
@@ -85,6 +91,14 @@ constructor(
 
     fun deleteProfile(profileId: String) {
         viewModelScope.launch { profileRepository.delete(profileId) }
+    }
+
+    /** Persisted; a running session keeps its preset until restarted (like profiles). */
+    fun setPreset(preset: AssistPreset) {
+        viewModelScope.launch {
+            settingsRepository.setAssistPreset(preset.name)
+            if (!controller.running.value) sessionFactory.prepare()
+        }
     }
 
     /** Prepare the controller config from the active profile. Returns true if ready. */

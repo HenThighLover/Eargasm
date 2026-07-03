@@ -46,10 +46,17 @@ class AndroidAudioEngine : AudioEngine {
     private fun runLoop(format: AudioFormat, processor: AudioProcessor) {
         Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
 
+        // Capture is always mono (one mic); output is mono or stereo per the
+        // format — stereo lets each ear run its own gain curve.
         val channelIn = PlatformAudioFormat.CHANNEL_IN_MONO
-        val channelOut = PlatformAudioFormat.CHANNEL_OUT_MONO
+        val channelOut =
+            if (format.channelCount == 2) {
+                PlatformAudioFormat.CHANNEL_OUT_STEREO
+            } else {
+                PlatformAudioFormat.CHANNEL_OUT_MONO
+            }
         val encoding = PlatformAudioFormat.ENCODING_PCM_FLOAT
-        val bytesPerBlock = format.framesPerBlock * Float.SIZE_BYTES
+        val bytesPerBlock = format.framesPerBlock * format.channelCount * Float.SIZE_BYTES
 
         val recordBytes =
             maxOf(AudioRecord.getMinBufferSize(format.sampleRateHz, channelIn, encoding), bytesPerBlock * 4)
@@ -95,16 +102,17 @@ class AndroidAudioEngine : AudioEngine {
                     .build()
 
             val block = FloatArray(format.framesPerBlock)
+            val out = FloatArray(format.framesPerBlock * format.channelCount)
             record.startRecording()
             track.play()
 
             while (running) {
                 val read = record.read(block, 0, block.size, AudioRecord.READ_BLOCKING)
                 if (read <= 0) continue
-                // Process exactly the frames we read.
-                val toProcess = if (read == block.size) block else block.copyOf(read)
+                // Process exactly the frames we read (interleaved when stereo).
+                val toProcess = prepareBlock(format, block, out, read)
                 processor.process(toProcess)
-                track.write(toProcess, 0, read, AudioTrack.WRITE_BLOCKING)
+                track.write(toProcess, 0, read * format.channelCount, AudioTrack.WRITE_BLOCKING)
             }
         } catch (e: SecurityException) {
             // Missing RECORD_AUDIO permission — fail closed (silent), never loud.
@@ -113,6 +121,22 @@ class AndroidAudioEngine : AudioEngine {
             record?.runCatchingRelease()
             track?.runCatchingRelease { stop() }
         }
+    }
+
+    /** Exact-sized block for the processor: mono as-is, or duplicated to stereo. */
+    private fun prepareBlock(format: AudioFormat, block: FloatArray, out: FloatArray, read: Int): FloatArray = when {
+        format.channelCount == 2 -> expandMonoToStereo(block, read, out)
+        read == block.size -> block
+        else -> block.copyOf(read)
+    }
+
+    /** Duplicates [read] mono frames into interleaved stereo; exact-sized result. */
+    private fun expandMonoToStereo(mono: FloatArray, read: Int, out: FloatArray): FloatArray {
+        for (i in 0 until read) {
+            out[2 * i] = mono[i]
+            out[2 * i + 1] = mono[i]
+        }
+        return if (read * 2 == out.size) out else out.copyOf(read * 2)
     }
 
     private fun AudioRecord.runCatchingRelease() {

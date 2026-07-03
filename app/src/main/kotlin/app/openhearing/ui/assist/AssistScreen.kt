@@ -24,6 +24,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.openhearing.R
 import app.openhearing.assist.AssistService
 import app.openhearing.common.SafetyConstants
+import app.openhearing.core.audio.dsp.AssistPreset
 import app.openhearing.data.HearingProfile
 import kotlinx.coroutines.launch
 
@@ -117,11 +121,9 @@ fun AssistScreen(onBack: () -> Unit, viewModel: AssistViewModel = hiltViewModel(
             AssistControls(
                 state = state,
                 speakerWarning = speakerWarning,
+                viewModel = viewModel,
                 onStart = ::startAssist,
                 onStop = { AssistService.stop(context) },
-                onGainChange = viewModel::setMasterGain,
-                onSelectProfile = viewModel::selectProfile,
-                onDeleteProfile = viewModel::deleteProfile,
             )
         }
 
@@ -136,11 +138,9 @@ fun AssistScreen(onBack: () -> Unit, viewModel: AssistViewModel = hiltViewModel(
 private fun AssistControls(
     state: AssistUiState,
     speakerWarning: Boolean,
+    viewModel: AssistViewModel,
     onStart: () -> Unit,
     onStop: () -> Unit,
-    onGainChange: (Double) -> Unit,
-    onSelectProfile: (String) -> Unit,
-    onDeleteProfile: (String) -> Unit,
 ) {
     Text(
         if (state.running) {
@@ -153,7 +153,13 @@ private fun AssistControls(
         modifier = Modifier.padding(top = 8.dp),
     )
 
-    GainControl(masterGainDb = state.masterGainDb, onChange = onGainChange)
+    GainControl(masterGainDb = state.masterGainDb, onChange = viewModel::setMasterGain)
+
+    PresetSelector(
+        preset = state.preset,
+        running = state.running,
+        onChange = viewModel::setPreset,
+    )
 
     if (speakerWarning && !state.running) SpeakerWarning()
 
@@ -184,10 +190,46 @@ private fun AssistControls(
             profiles = state.profiles,
             activeProfileId = state.activeProfileId,
             running = state.running,
-            onSelect = onSelectProfile,
-            onDelete = onDeleteProfile,
+            onSelect = viewModel::selectProfile,
+            onDelete = viewModel::deleteProfile,
         )
     }
+}
+
+@Composable
+private fun PresetSelector(preset: AssistPreset, running: Boolean, onChange: (AssistPreset) -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+        Column(Modifier.padding(16.dp)) {
+            Text(stringResource(R.string.preset_title), style = MaterialTheme.typography.labelLarge)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                AssistPreset.entries.forEachIndexed { index, entry ->
+                    SegmentedButton(
+                        selected = entry == preset,
+                        onClick = { onChange(entry) },
+                        shape =
+                        SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = AssistPreset.entries.size,
+                        ),
+                    ) { Text(presetLabel(entry)) }
+                }
+            }
+            if (running) {
+                Text(
+                    stringResource(R.string.preset_while_running),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun presetLabel(preset: AssistPreset): String = when (preset) {
+    AssistPreset.STANDARD -> stringResource(R.string.preset_standard)
+    AssistPreset.CONVERSATION -> stringResource(R.string.preset_conversation)
+    AssistPreset.OUTDOORS -> stringResource(R.string.preset_outdoors)
 }
 
 private fun headphonesConnected(context: Context): Boolean {

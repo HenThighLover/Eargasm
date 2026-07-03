@@ -83,6 +83,32 @@ class HearingAssistChainTest {
     }
 
     @Test
+    fun `high-pass option attenuates rumble but keeps speech`() {
+        val plain = HearingAssistChain(curve, sampleRate, masterGainDb = 0.0)
+        val lowCut = HearingAssistChain(curve, sampleRate, masterGainDb = 0.0, highPassHz = 150.0)
+
+        val rumblePlain = sine(amp = 0.1, freq = 40.0, n = sampleRate)
+        val rumbleCut = rumblePlain.copyOf()
+        plain.process(rumblePlain)
+        lowCut.process(rumbleCut)
+        assertTrue(
+            rms(rumbleCut, sampleRate / 5) < rms(rumblePlain, sampleRate / 5) * 0.3,
+            "40 Hz rumble should be strongly attenuated by the 150 Hz low cut",
+        )
+
+        plain.reset()
+        lowCut.reset()
+        val speechPlain = sine(amp = 0.05, freq = 2000.0, n = sampleRate)
+        val speechCut = speechPlain.copyOf()
+        plain.process(speechPlain)
+        lowCut.process(speechCut)
+        assertTrue(
+            rms(speechCut, sampleRate / 5) > rms(speechPlain, sampleRate / 5) * 0.8,
+            "2 kHz content should pass the low cut essentially unchanged",
+        )
+    }
+
+    @Test
     fun `live master gain change never exceeds cap or ceiling`() {
         val chain = HearingAssistChain(curve, sampleRate, masterGainDb = 0.0, ceilingLinear = 0.8f)
         chain.setMasterGainDb(999.0) // absurd request while "running"

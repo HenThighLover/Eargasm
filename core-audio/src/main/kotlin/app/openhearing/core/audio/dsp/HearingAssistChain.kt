@@ -22,7 +22,11 @@ class HearingAssistChain(
     sampleRateHz: Int,
     masterGainDb: Double,
     ceilingLinear: Float = DEFAULT_CEILING_LINEAR,
+    /** Optional low-cut (e.g. wind/rumble for the outdoors preset); null = off. */
+    highPassHz: Double? = null,
 ) : AudioProcessor {
+    private val highPass: Biquad? =
+        highPassHz?.let { Biquad.highPass(it, HIGH_PASS_Q, sampleRateHz) }
     private val eq = GainEqualizer(gainCurve, sampleRateHz)
     private val wdrc = Wdrc(sampleRateHz)
     private val guard = FeedbackGuard(sampleRateHz)
@@ -41,6 +45,11 @@ class HearingAssistChain(
     }
 
     override fun process(buffer: FloatArray) {
+        highPass?.let { hp ->
+            for (i in buffer.indices) {
+                buffer[i] = hp.processSample(buffer[i].toDouble()).toFloat()
+            }
+        }
         eq.process(buffer)
         wdrc.process(buffer)
         guard.process(buffer)
@@ -52,6 +61,7 @@ class HearingAssistChain(
     }
 
     fun reset() {
+        highPass?.reset()
         eq.reset()
         wdrc.reset()
         guard.reset()
@@ -65,6 +75,9 @@ class HearingAssistChain(
          * cap; calibration may lower it further. See docs/SAFETY.md / docs/CALIBRATION.md.
          */
         const val DEFAULT_CEILING_LINEAR = 0.9f
+
+        /** Gentle slope; the low-cut is a comfort feature, not surgical filtering. */
+        private const val HIGH_PASS_Q = 0.707
 
         private fun linearGain(db: Double): Float =
             10.0.pow(db.coerceIn(0.0, SafetyConstants.MAX_MASTER_GAIN_CAP_DB) / 20.0).toFloat()

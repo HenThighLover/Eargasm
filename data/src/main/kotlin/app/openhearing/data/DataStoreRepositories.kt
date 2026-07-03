@@ -23,6 +23,7 @@ private object Keys {
     val CONSENT = booleanPreferencesKey("consent_accepted")
     val HIGH_CONTRAST = booleanPreferencesKey("high_contrast")
     val COMFORT_CEILING = floatPreferencesKey("comfort_ceiling")
+    val ASSIST_PRESET = stringPreferencesKey("assist_preset")
     val PROFILES = stringPreferencesKey("profiles")
     val ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
 
@@ -55,11 +56,18 @@ class DataStoreSettingsRepository(private val dataStore: DataStore<Preferences>)
         dataStore.edit { it[Keys.COMFORT_CEILING] = value.coerceIn(MIN_CEILING, MAX_CEILING) }
     }
 
+    override fun observeAssistPreset(): Flow<String> = dataStore.data.map { it[Keys.ASSIST_PRESET] ?: DEFAULT_PRESET }
+
+    override suspend fun setAssistPreset(name: String) {
+        dataStore.edit { it[Keys.ASSIST_PRESET] = name }
+    }
+
     private companion object {
         // Conservative default until the user calibrates; bounded for safety.
         const val DEFAULT_COMFORT_CEILING = 0.5f
         const val MIN_CEILING = 0.1f
         const val MAX_CEILING = 0.9f
+        const val DEFAULT_PRESET = "STANDARD"
     }
 }
 

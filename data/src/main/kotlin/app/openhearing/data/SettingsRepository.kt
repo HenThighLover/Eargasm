@@ -23,4 +23,12 @@ interface SettingsRepository {
     fun observeComfortCeiling(): Flow<Float>
 
     suspend fun setComfortCeiling(value: Float)
+
+    /**
+     * Assist environment preset, stored by name (e.g. "STANDARD"). The app layer
+     * maps it to the DSP preset enum; unknown names fall back to standard.
+     */
+    fun observeAssistPreset(): Flow<String>
+
+    suspend fun setAssistPreset(name: String)
 }
