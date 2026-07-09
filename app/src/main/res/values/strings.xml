@@ -88,6 +88,17 @@
     <string name="manual_slider">%1$s ear, %2$d hertz threshold</string>
     <string name="check_manual_entry">Enter results manually</string>
 
+    <!-- Share results -->
+    <string name="check_share">Share results</string>
+    <string name="share_preview_title">Share a picture of your results</string>
+    <string name="share_preview_note">This image shows your estimated results. Only share it if you\'re comfortable doing so.</string>
+    <string name="share_send">Share image</string>
+    <string name="share_cancel">Cancel</string>
+    <string name="share_chooser_title">Share hearing check results</string>
+    <string name="share_card_subtitle">Estimated results · %1$s</string>
+    <string name="share_card_disclaimer">Estimates from an uncalibrated self-check — not a diagnosis.</string>
+    <string name="share_card_footer">Free &amp; open-source hearing assistance\ngithub.com/HMAKT99/OpenHearing</string>
+
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_high_contrast">High-contrast theme</string>

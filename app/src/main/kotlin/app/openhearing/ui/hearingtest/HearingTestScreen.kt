@@ -20,6 +20,9 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -31,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.openhearing.R
 import app.openhearing.audiogram.Audiogram
 import app.openhearing.common.Ear
+import app.openhearing.ui.share.ShareResultsDialog
 
 /**
  * Hearing-check screen: runs the pure-tone screening through the phone speaker or
@@ -169,6 +173,7 @@ private fun SafetyControls(state: HearingTestUiState, viewModel: HearingTestView
 
 @Composable
 private fun Results(state: HearingTestUiState, onRestart: () -> Unit, onBack: () -> Unit) {
+    var showShare by rememberSaveable { mutableStateOf(false) }
     Column {
         Text(
             stringResource(R.string.check_complete),
@@ -185,6 +190,16 @@ private fun Results(state: HearingTestUiState, onRestart: () -> Unit, onBack: ()
         )
         BigButton(stringResource(R.string.check_run_again), onClick = onRestart)
         Spacer(Modifier.padding(4.dp))
+        state.audiogram?.let { audiogram ->
+            OutlinedButton(
+                onClick = { showShare = true },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            ) { Text(stringResource(R.string.check_share)) }
+            Spacer(Modifier.padding(4.dp))
+            if (showShare) {
+                ShareResultsDialog(audiogram = audiogram, onDismiss = { showShare = false })
+            }
+        }
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.back))
         }

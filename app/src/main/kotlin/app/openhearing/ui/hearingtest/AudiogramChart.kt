@@ -55,8 +55,8 @@ private data class EarSeries(val ear: Ear, val color: Color, val points: List<Pa
  * (the canvas carries a short content description pointing there).
  */
 @Composable
-fun AudiogramChart(audiogram: Audiogram, modifier: Modifier = Modifier) {
-    val dark = isSystemInDarkTheme()
+fun AudiogramChart(audiogram: Audiogram, modifier: Modifier = Modifier, darkTheme: Boolean = isSystemInDarkTheme()) {
+    val dark = darkTheme
     val rightColor = if (dark) RightDark else RightLight
     val leftColor = if (dark) LeftDark else LeftLight
     val gridColor = MaterialTheme.colorScheme.outlineVariant
