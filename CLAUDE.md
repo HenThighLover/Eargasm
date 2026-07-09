@@ -35,6 +35,7 @@ Phases 0,1,2,4,5 plus consumer phases A,B are **built, unit-tested**. The app is
 | A Consumer polish (icons, results chart, translatable strings, regulatory copy, About, fastlane assets) | ✅ done 2026-07-02 |
 | B User-demanded features (live gain, manual audiogram entry, multi-profile history, disconnect auto-stop + speaker warning, QS tile) | ✅ done 2026-07-03 |
 | C Differentiators (per-ear stereo assist, environment presets, experimental media EQ) | ✅ done 2026-07-03 |
+| D Shareable results card (first of viral phases D–H: share card, A/B demo, remote mic, loudness meter, digits-in-noise) | ✅ done 2026-07-09 |
 | Calibration | ✅ comfort-ceiling proxy; true dB SPL needs a meter |
 
 **88 unit tests green; debug + release (R8) APKs build.** UI flows exercised on

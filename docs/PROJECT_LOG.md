@@ -142,6 +142,19 @@ running). 76 JVM tests green.
 All emulator-verified (stereo session ran with conversation preset; media EQ
 toggle attach succeeded). 88 JVM tests green.
 
+### Phase D — Shareable results card ✅ (2026-07-09)
+First of the "viral" phases (D–H planned: share card, A/B profile demo, remote
+mic, loudness meter, digits-in-noise). A "Share results" button on the completed
+check screen opens a preview-then-share dialog: the visible card (app name, date,
+`AudiogramChart`, "not a diagnosis" disclaimer, repo footer) is recorded via
+Compose 1.7 `rememberGraphicsLayer()`/`toImageBitmap()`, written as PNG to
+`cacheDir/shared/results.png`, and handed to the system share sheet through a new
+`FileProvider` (one-time URI grant; still no INTERNET permission). The card is
+pinned to the light theme inside a `Surface` so exports look identical from
+dark-mode/high-contrast sessions (`AudiogramChart` gained an optional `darkTheme`
+param, default unchanged). Emulator-verified in dark mode: preview correct,
+chooser opens, no crashes.
+
 ### Phase 3 — AirPods ❌ NOT STARTED
 The reverse-engineered (LibrePods/CAPod) protocol is `UNVERIFIED`. `:airpods-protocol`
 ships interfaces/models only. Needs real BLE/HCI capture on hardware and the

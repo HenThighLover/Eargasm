@@ -63,6 +63,9 @@ personalized amplification profile, and boost quiet speech in real time.
 - 🎧 **Pure-tone hearing check** — adaptive (Hughson–Westlake) staircase, per ear,
   per frequency, shown as a per-ear chart — or **enter results from a professional
   hearing test manually**.
+- 📤 **Shareable results** — export your results chart as a clean image via a
+  preview-first dialog, so you always see exactly what you're sharing before it
+  leaves the app.
 - 🔊 **Real-time hearing assist, per ear** — each ear gets its own fitted gain
   curve (stereo), with wide dynamic-range compression, a feedback/howl guard, and
   **live volume control while it runs**.
