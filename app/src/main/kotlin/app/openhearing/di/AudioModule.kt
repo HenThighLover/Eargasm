@@ -2,6 +2,7 @@ package app.openhearing.di
 
 import app.openhearing.audiogram.FittingStrategy
 import app.openhearing.audiogram.halfGainFitting
+import app.openhearing.core.audio.AbPlayer
 import app.openhearing.core.audio.ToneGenerator
 import app.openhearing.core.audio.TonePlayer
 import dagger.Module
@@ -22,6 +23,10 @@ object AudioModule {
     // responsible for releasing it.
     @Provides
     fun tonePlayer(): TonePlayer = TonePlayer()
+
+    // Same lifecycle contract as TonePlayer: per-consumer, released by its owner.
+    @Provides
+    fun abPlayer(): AbPlayer = AbPlayer()
 
     @Provides
     @Singleton

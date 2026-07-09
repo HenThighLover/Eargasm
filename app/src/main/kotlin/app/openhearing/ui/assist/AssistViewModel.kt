@@ -3,8 +3,10 @@ package app.openhearing.ui.assist
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.openhearing.assist.AssistController
+import app.openhearing.assist.AssistMode
 import app.openhearing.assist.AssistSessionFactory
 import app.openhearing.core.audio.dsp.AssistPreset
+import app.openhearing.core.audio.dsp.ExposureTracker
 import app.openhearing.data.HearingProfile
 import app.openhearing.data.ProfileRepository
 import app.openhearing.data.SettingsRepository
@@ -16,15 +18,29 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
+
+/** Relative listening-meter values for the card; see ExposureTracker. */
+data class ExposureUi(
+    val sessionSeconds: Long = 0,
+    val todayPercent: Int = 0,
+    /** Last-second output level mapped 0..1 for the live bar. */
+    val levelFraction: Float = 0f,
+    val showHighNote: Boolean = false,
+)
 
 data class AssistUiState(
     val hasProfile: Boolean = false,
+    /** True when an on-body assist session is live (not a remote-mic one). */
     val running: Boolean = false,
+    /** True when a remote-mic session owns the shared pipeline instead. */
+    val remoteMicActive: Boolean = false,
     val masterGainDb: Double = DEFAULT_MASTER_GAIN_DB,
     val profiles: List<HearingProfile> = emptyList(),
     val activeProfileId: String? = null,
     val preset: AssistPreset = AssistPreset.STANDARD,
+    val exposure: ExposureUi = ExposureUi(),
 ) {
     companion object {
         const val DEFAULT_MASTER_GAIN_DB = 12.0
@@ -49,21 +65,42 @@ constructor(
 ) : ViewModel() {
     private val masterGain = MutableStateFlow(AssistUiState.DEFAULT_MASTER_GAIN_DB)
 
+    private val session =
+        combine(controller.running, controller.activeMode) { running, mode -> running to mode }
+
+    private val exposureUi =
+        combine(controller.exposure, settingsRepository.observeExposureToday()) { snapshot, stored ->
+            val carried =
+                ExposureTracker.carriedUnits(stored.epochDay, stored.units, LocalDate.now().toEpochDay())
+            val todayPercent = ExposureTracker.percentOf(carried + snapshot.unflushedUnits)
+            ExposureUi(
+                sessionSeconds = snapshot.sessionSeconds,
+                todayPercent = todayPercent.toInt().coerceAtLeast(0),
+                levelFraction = levelFraction(snapshot.lastRmsDbfs),
+                showHighNote = todayPercent >= ExposureTracker.HIGH_PERCENT,
+            )
+        }
+
+    private val runtime = combine(session, exposureUi) { s, e -> s to e }
+
     val uiState: StateFlow<AssistUiState> =
         combine(
             profileRepository.observeActiveProfile(),
             profileRepository.observeProfiles(),
-            controller.running,
+            runtime,
             masterGain,
             settingsRepository.observeAssistPreset(),
-        ) { active, profiles, running, gain, presetName ->
+        ) { active, profiles, (sessionState, exposure), gain, presetName ->
+            val (running, mode) = sessionState
             AssistUiState(
                 hasProfile = active?.audiogram?.thresholds?.isNotEmpty() == true,
-                running = running,
+                running = running && mode == AssistMode.HEARING_ASSIST,
+                remoteMicActive = running && mode == AssistMode.REMOTE_MIC,
                 masterGainDb = active?.masterGainCapDb ?: gain,
                 profiles = profiles,
                 activeProfileId = active?.id,
                 preset = AssistPreset.fromName(presetName),
+                exposure = exposure,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AssistUiState())
 
@@ -106,5 +143,11 @@ constructor(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
+
+        // Map the last-second RMS (dBFS) onto a 0..1 bar; −60 dBFS ≈ silence.
+        const val LEVEL_FLOOR_DBFS = -60.0
+
+        fun levelFraction(rmsDbfs: Double): Float =
+            ((rmsDbfs - LEVEL_FLOOR_DBFS) / -LEVEL_FLOOR_DBFS).coerceIn(0.0, 1.0).toFloat()
     }
 }

@@ -1,10 +1,7 @@
 package app.openhearing.ui.assist
 
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
-import android.media.AudioDeviceInfo
-import android.media.AudioManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -53,6 +50,8 @@ import app.openhearing.assist.AssistService
 import app.openhearing.common.SafetyConstants
 import app.openhearing.core.audio.dsp.AssistPreset
 import app.openhearing.data.HearingProfile
+import app.openhearing.ui.common.headphonesConnected
+import app.openhearing.ui.demo.HearDifferenceCard
 import kotlinx.coroutines.launch
 
 /**
@@ -163,6 +162,14 @@ private fun AssistControls(
 
     if (speakerWarning && !state.running) SpeakerWarning()
 
+    if (state.remoteMicActive) {
+        Text(
+            stringResource(R.string.assist_remote_active),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 16.dp),
+        )
+    }
+
     Spacer(Modifier.padding(8.dp))
     if (state.running) {
         Button(
@@ -172,6 +179,7 @@ private fun AssistControls(
     } else {
         Button(
             onClick = onStart,
+            enabled = !state.remoteMicActive,
             modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp),
         ) {
             Text(
@@ -185,6 +193,8 @@ private fun AssistControls(
         }
     }
 
+    ExposureCard(exposure = state.exposure, running = state.running)
+
     if (state.profiles.size > 1) {
         ProfilesCard(
             profiles = state.profiles,
@@ -194,6 +204,8 @@ private fun AssistControls(
             onDelete = viewModel::deleteProfile,
         )
     }
+
+    HearDifferenceCard(modifier = Modifier.padding(top = 8.dp))
 }
 
 @Composable
@@ -230,21 +242,6 @@ private fun presetLabel(preset: AssistPreset): String = when (preset) {
     AssistPreset.STANDARD -> stringResource(R.string.preset_standard)
     AssistPreset.CONVERSATION -> stringResource(R.string.preset_conversation)
     AssistPreset.OUTDOORS -> stringResource(R.string.preset_outdoors)
-}
-
-private fun headphonesConnected(context: Context): Boolean {
-    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-    val headphoneTypes =
-        setOf(
-            AudioDeviceInfo.TYPE_WIRED_HEADSET,
-            AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
-            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
-            AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
-            AudioDeviceInfo.TYPE_USB_HEADSET,
-            AudioDeviceInfo.TYPE_HEARING_AID,
-            AudioDeviceInfo.TYPE_BLE_HEADSET,
-        )
-    return audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { it.type in headphoneTypes }
 }
 
 @Composable

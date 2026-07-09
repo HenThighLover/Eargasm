@@ -116,4 +116,55 @@ class HearingAssistChainTest {
         chain.process(buf)
         assertTrue(buf.all { abs(it) <= 0.8f + 1e-6f }, "live gain change must stay limited")
     }
+
+    @Test
+    fun `disabling the guard stops the sustained-tone ducking (remote-mic mode)`() {
+        // A held musical note: exactly what the guard false-triggers on when the
+        // phone listens to a TV across the room. Flat curve + block-by-block
+        // streaming (like the live engine) so the guard fully engages and the
+        // limiter stays out of the comparison.
+        val flat = GainCurve(listOf(GainPoint(Hertz(250.0), 0.0), GainPoint(Hertz(8000.0), 0.0)))
+        val guarded = HearingAssistChain(flat, sampleRate, masterGainDb = 0.0)
+        val unguarded =
+            HearingAssistChain(flat, sampleRate, masterGainDb = 0.0, feedbackGuardEnabled = false)
+
+        val blockSize = 2048
+        var guardedTailRms = 0.0
+        var unguardedTailRms = 0.0
+        repeat(40) { block ->
+            val phaseOffset = block * blockSize
+            val chunk =
+                FloatArray(blockSize) {
+                    (0.6 * sin(2.0 * PI * 2000.0 * (phaseOffset + it) / sampleRate)).toFloat()
+                }
+            val guardedChunk = chunk.copyOf().also { guarded.process(it) }
+            val unguardedChunk = chunk.copyOf().also { unguarded.process(it) }
+            if (block >= 30) {
+                guardedTailRms += rms(guardedChunk, 0)
+                unguardedTailRms += rms(unguardedChunk, 0)
+            }
+        }
+        assertTrue(
+            unguardedTailRms > guardedTailRms * 2,
+            "guard-off chain should NOT duck a sustained note " +
+                "(guarded=$guardedTailRms unguarded=$unguardedTailRms)",
+        )
+    }
+
+    @Test
+    fun `guard-off output still never exceeds the ceiling`() {
+        // SAFETY: the limiter, not the guard, is the output bound — with the
+        // guard disabled and absurd gain, the ceiling must still hold.
+        val chain =
+            HearingAssistChain(
+                curve,
+                sampleRate,
+                masterGainDb = 40.0,
+                ceilingLinear = 0.5f,
+                feedbackGuardEnabled = false,
+            )
+        val buf = sine(amp = 0.9, freq = 2000.0, n = sampleRate)
+        chain.process(buf)
+        assertTrue(buf.all { abs(it) <= 0.5f + 1e-4f }, "guard-off chain exceeded the ceiling")
+    }
 }

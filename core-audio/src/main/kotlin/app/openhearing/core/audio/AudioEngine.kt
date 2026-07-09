@@ -19,8 +19,30 @@ interface AudioEngine {
     fun stop()
 }
 
+/**
+ * How the platform should pre-process the microphone signal before it reaches
+ * the chain. On-body assist wants the platform AEC/NS ([COMMUNICATION]) as extra
+ * feedback protection; remote-mic wants the signal untouched — far-field TV or
+ * music reads as "noise" to a communication-tuned suppressor and gets mangled.
+ */
+enum class InputTuning {
+    /** VOICE_COMMUNICATION: platform AEC/NS enabled where available. */
+    COMMUNICATION,
+
+    /** UNPROCESSED: no platform effects (only where the device reports support). */
+    RAW_UNPROCESSED,
+
+    /** VOICE_RECOGNITION: AGC/AEC/NS disabled — the universal raw fallback. */
+    RAW_VOICE_RECOGNITION,
+}
+
 /** Audio stream parameters negotiated with the device. */
-data class AudioFormat(val sampleRateHz: Int, val channelCount: Int, val framesPerBlock: Int) {
+data class AudioFormat(
+    val sampleRateHz: Int,
+    val channelCount: Int,
+    val framesPerBlock: Int,
+    val inputTuning: InputTuning = InputTuning.COMMUNICATION,
+) {
     init {
         require(sampleRateHz > 0) { "sampleRateHz must be positive" }
         require(channelCount in 1..2) { "channelCount must be 1 (mono) or 2 (stereo)" }

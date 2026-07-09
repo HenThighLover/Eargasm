@@ -68,9 +68,7 @@ class AndroidAudioEngine : AudioEngine {
         try {
             record =
                 AudioRecord.Builder()
-                    // VOICE_COMMUNICATION enables the platform AEC/NS where available,
-                    // which also helps suppress feedback.
-                    .setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+                    .setAudioSource(audioSourceFor(format.inputTuning))
                     .setAudioFormat(
                         PlatformAudioFormat.Builder()
                             .setSampleRate(format.sampleRateHz)
@@ -147,6 +145,16 @@ class AndroidAudioEngine : AudioEngine {
     private inline fun AudioTrack.runCatchingRelease(pre: AudioTrack.() -> Unit) {
         runCatching { pre() }
         runCatching { release() }
+    }
+
+    // COMMUNICATION keeps the platform AEC/NS (extra feedback protection for
+    // on-body assist); the RAW tunings hand the chain an untouched signal for
+    // remote-mic listening. UNPROCESSED support must be checked by the caller
+    // (unsupported devices silently treat it as DEFAULT).
+    private fun audioSourceFor(tuning: InputTuning): Int = when (tuning) {
+        InputTuning.COMMUNICATION -> MediaRecorder.AudioSource.VOICE_COMMUNICATION
+        InputTuning.RAW_UNPROCESSED -> MediaRecorder.AudioSource.UNPROCESSED
+        InputTuning.RAW_VOICE_RECOGNITION -> MediaRecorder.AudioSource.VOICE_RECOGNITION
     }
 
     private companion object {

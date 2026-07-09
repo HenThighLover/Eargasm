@@ -36,4 +36,17 @@ interface SettingsRepository {
     fun observeMediaEqEnabled(): Flow<Boolean>
 
     suspend fun setMediaEqEnabled(enabled: Boolean)
+
+    /**
+     * Accumulated relative listening-exposure units for one epoch day (see the
+     * ExposureTracker in :core-audio for the unit definition — deliberately
+     * relative, never dB SPL). Reset implicitly when the stored day changes.
+     */
+    fun observeExposureToday(): Flow<DailyExposure>
+
+    /** Add [units] to [epochDay]; a different stored day is replaced, not summed. */
+    suspend fun addExposureUnits(units: Double, epochDay: Long)
 }
+
+/** Exposure units accumulated on [epochDay] (may be a past day until next write). */
+data class DailyExposure(val epochDay: Long, val units: Double)

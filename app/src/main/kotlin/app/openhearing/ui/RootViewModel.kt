@@ -10,6 +10,7 @@ import app.openhearing.core.audio.dsp.MediaEqPlanner
 import app.openhearing.data.ProfileRepository
 import app.openhearing.data.SettingsRepository
 import app.openhearing.mediaeq.MediaEqController
+import app.openhearing.ui.dintest.DigitCorpus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,8 @@ data class RootUiState(
     val mediaEqEnabled: Boolean = false,
     val mediaEqSupported: Boolean = false,
     val mediaEqFailed: Boolean = false,
+    /** True when the digits-in-noise corpus ships in this build (docs/DIN.md). */
+    val dinAvailable: Boolean = false,
 )
 
 @HiltViewModel
@@ -41,7 +44,9 @@ constructor(
     private val mediaEq: MediaEqController,
     private val toneGenerator: ToneGenerator,
     private val tonePlayer: TonePlayer,
+    digitCorpus: DigitCorpus,
 ) : ViewModel() {
+    private val dinAvailable = digitCorpus.isAvailable()
     private var previewJob: Job? = null
     private val mediaEqFailed = MutableStateFlow(false)
 
@@ -66,6 +71,7 @@ constructor(
                 mediaEqEnabled = eqEnabled,
                 mediaEqSupported = mediaEq.isSupported,
                 mediaEqFailed = failed,
+                dinAvailable = dinAvailable,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), RootUiState())
 

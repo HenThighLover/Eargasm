@@ -99,6 +99,55 @@
     <string name="share_card_disclaimer">Estimates from an uncalibrated self-check — not a diagnosis.</string>
     <string name="share_card_footer">Free &amp; open-source hearing assistance\ngithub.com/HMAKT99/OpenHearing</string>
 
+    <!-- Hear the difference (A/B demo) -->
+    <string name="demo_title">Hear the difference</string>
+    <string name="demo_desc">Plays a short sample sound. Flip the switch to hear it shaped through your sound profile, including your amplification level. This is a simulation through your headphones, not a measurement.</string>
+    <string name="demo_play">Play sample</string>
+    <string name="demo_stop">Stop sample</string>
+    <string name="demo_toggle">Through your profile</string>
+    <string name="demo_flat_hint">If your profile has little or no adjustment, the two versions may sound similar — mostly just louder by your amplification setting.</string>
+    <string name="demo_assist_running">Stop assist first — the sample can\'t play while the microphone is live.</string>
+
+    <!-- Remote microphone -->
+    <string name="home_remote_mic">Remote microphone</string>
+    <string name="remote_mic_title">Remote microphone</string>
+    <string name="remote_mic_howto">Place the phone close to what you want to hear — the TV, a speaker, a person across the table. Its sound streams to your connected headphones. Sound arrives with a slight delay, so video lips may look out of sync.</string>
+    <string name="remote_mic_on">Remote microphone is ON</string>
+    <string name="remote_mic_off">Remote microphone is off</string>
+    <string name="remote_mic_start">Start remote microphone</string>
+    <string name="remote_mic_stop">Stop remote microphone</string>
+    <string name="remote_mic_needs_headphones">Connect earbuds or headphones first. Remote microphone streams to them and can\'t run on the phone speaker.</string>
+    <string name="remote_mic_assist_active">Hearing assist is running. Stop it first to use the remote microphone.</string>
+    <string name="remote_mic_active_title">Remote microphone is on</string>
+    <string name="remote_mic_active_text">Streaming nearby sound to your headphones. Tap Stop to turn off.</string>
+    <string name="assist_remote_active">Remote microphone is running. Stop it first to start hearing assist.</string>
+
+    <!-- Listening meter (relative exposure) -->
+    <string name="exposure_title">Listening meter</string>
+    <string name="exposure_desc">Shows how loud assist\'s output has been, and for how long. This device isn\'t calibrated, so it\'s a relative guide — not a measurement of loudness at your ear.</string>
+    <string name="exposure_session">This session: %1$s</string>
+    <string name="exposure_today">Today: %1$d%% of the daily meter</string>
+    <string name="exposure_level_now">Output level</string>
+    <string name="exposure_high_note">Assist has been running loud for a while. Consider lowering the level or taking a break.</string>
+
+    <!-- Listening-in-noise check (digits in noise) -->
+    <string name="home_din_test">Listening-in-noise check</string>
+    <string name="din_title">Listening-in-noise check</string>
+    <string name="din_notice">This check estimates how well you pick out speech from background noise. Because it compares speech against noise, your volume setting barely affects the result — just set a comfortable level first. It is an estimate, not a diagnosis, and not a substitute for a professional hearing assessment.</string>
+    <string name="din_intro">You\'ll hear three spoken digits mixed with noise, 24 times. After each one, type the digits you heard. The noise adapts as you go — it\'s normal for it to get hard; guess if unsure.</string>
+    <string name="din_start">Start the check</string>
+    <string name="din_progress">Round %1$d of %2$d</string>
+    <string name="din_playing">Listen…</string>
+    <string name="din_enter_prompt">Type the three digits you heard.</string>
+    <string name="din_backspace">Delete</string>
+    <string name="din_submit">Next</string>
+    <string name="din_complete">Listening-in-noise check complete</string>
+    <string name="din_result_value">You followed the digits down to a speech-to-noise level of about %1$d dB (estimate).</string>
+    <string name="din_result_pinned">This run stayed at the edge of the check\'s range, so it can\'t give a useful number. Quiet room and headphones help — feel free to try again.</string>
+    <string name="din_band_strong">In this check, you picked out the digits even with a lot of background noise.</string>
+    <string name="din_band_mid">In this check, you picked out the digits at moderate noise levels.</string>
+    <string name="din_band_weaker">In this check, background noise made the digits harder to follow. If following conversation in noisy places is a day-to-day struggle, a professional hearing assessment can tell you more.</string>
+
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_high_contrast">High-contrast theme</string>

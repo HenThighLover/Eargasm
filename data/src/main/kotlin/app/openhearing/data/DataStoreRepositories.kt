@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import app.openhearing.audiogram.Audiogram
 import app.openhearing.audiogram.AudiogramCodec
@@ -27,6 +28,8 @@ private object Keys {
     val MEDIA_EQ_ENABLED = booleanPreferencesKey("media_eq_enabled")
     val PROFILES = stringPreferencesKey("profiles")
     val ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
+    val EXPOSURE_EPOCH_DAY = longPreferencesKey("exposure_epoch_day")
+    val EXPOSURE_UNITS = doublePreferencesKey("exposure_units")
 
     // Legacy single-profile keys (pre-multi-profile builds).
     val PROFILE_NAME = stringPreferencesKey("profile_name")
@@ -67,6 +70,22 @@ class DataStoreSettingsRepository(private val dataStore: DataStore<Preferences>)
 
     override suspend fun setMediaEqEnabled(enabled: Boolean) {
         dataStore.edit { it[Keys.MEDIA_EQ_ENABLED] = enabled }
+    }
+
+    override fun observeExposureToday(): Flow<DailyExposure> = dataStore.data.map {
+        DailyExposure(
+            epochDay = it[Keys.EXPOSURE_EPOCH_DAY] ?: 0L,
+            units = it[Keys.EXPOSURE_UNITS] ?: 0.0,
+        )
+    }
+
+    override suspend fun addExposureUnits(units: Double, epochDay: Long) {
+        dataStore.edit {
+            val sameDay = it[Keys.EXPOSURE_EPOCH_DAY] == epochDay
+            val carried = if (sameDay) it[Keys.EXPOSURE_UNITS] ?: 0.0 else 0.0
+            it[Keys.EXPOSURE_EPOCH_DAY] = epochDay
+            it[Keys.EXPOSURE_UNITS] = carried + units
+        }
     }
 
     private companion object {

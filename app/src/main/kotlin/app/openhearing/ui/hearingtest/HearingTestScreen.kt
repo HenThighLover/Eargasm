@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.openhearing.R
 import app.openhearing.audiogram.Audiogram
 import app.openhearing.common.Ear
+import app.openhearing.ui.demo.HearDifferenceCard
 import app.openhearing.ui.share.ShareResultsDialog
 
 /**
@@ -183,6 +184,7 @@ private fun Results(state: HearingTestUiState, onRestart: () -> Unit, onBack: ()
         state.audiogram?.let { ResultsChart(it) }
         state.audiogram?.let { AudiogramTable(it) }
         state.gains.forEach { GainTable(it) }
+        HearDifferenceCard()
         Text(
             stringResource(R.string.check_results_disclaimer),
             style = MaterialTheme.typography.bodySmall,

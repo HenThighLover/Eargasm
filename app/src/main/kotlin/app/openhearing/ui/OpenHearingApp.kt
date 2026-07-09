@@ -37,11 +37,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.openhearing.BuildConfig
 import app.openhearing.R
 import app.openhearing.ui.assist.AssistScreen
+import app.openhearing.ui.dintest.DinTestScreen
 import app.openhearing.ui.hearingtest.HearingTestScreen
 import app.openhearing.ui.manualentry.ManualEntryScreen
+import app.openhearing.ui.remotemic.RemoteMicScreen
 import app.openhearing.ui.theme.OpenHearingTheme
 
-private enum class Screen { HOME, HEARING_TEST, MANUAL_ENTRY, ASSIST, SETTINGS }
+private enum class Screen { HOME, HEARING_TEST, MANUAL_ENTRY, ASSIST, REMOTE_MIC, DIN_TEST, SETTINGS }
 
 private const val SOURCE_URL = "https://github.com/HMAKT99/OpenHearing"
 private const val PRIVACY_URL = "https://github.com/HMAKT99/OpenHearing/blob/main/docs/PRIVACY.md"
@@ -56,7 +58,7 @@ fun OpenHearingApp(rootViewModel: RootViewModel = hiltViewModel()) {
                 when (root.consentAccepted) {
                     null -> Unit // loading
                     false -> OnboardingScreen(onAccept = rootViewModel::acceptDisclaimer)
-                    true -> MainNav()
+                    true -> MainNav(dinAvailable = root.dinAvailable)
                 }
             }
         }
@@ -64,7 +66,7 @@ fun OpenHearingApp(rootViewModel: RootViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun MainNav() {
+private fun MainNav(dinAvailable: Boolean) {
     var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
     // System back returns to Home from any sub-screen instead of exiting the app.
     BackHandler(enabled = screen != Screen.HOME) { screen = Screen.HOME }
@@ -73,7 +75,10 @@ private fun MainNav() {
             HomeScreen(
                 onRunHearingTest = { screen = Screen.HEARING_TEST },
                 onAssist = { screen = Screen.ASSIST },
+                onRemoteMic = { screen = Screen.REMOTE_MIC },
+                onDinTest = { screen = Screen.DIN_TEST },
                 onSettings = { screen = Screen.SETTINGS },
+                showDinTest = dinAvailable,
             )
         Screen.HEARING_TEST ->
             HearingTestScreen(
@@ -82,12 +87,21 @@ private fun MainNav() {
             )
         Screen.MANUAL_ENTRY -> ManualEntryScreen(onBack = { screen = Screen.HOME })
         Screen.ASSIST -> AssistScreen(onBack = { screen = Screen.HOME })
+        Screen.REMOTE_MIC -> RemoteMicScreen(onBack = { screen = Screen.HOME })
+        Screen.DIN_TEST -> DinTestScreen(onBack = { screen = Screen.HOME })
         Screen.SETTINGS -> SettingsScreen(onBack = { screen = Screen.HOME })
     }
 }
 
 @Composable
-private fun HomeScreen(onRunHearingTest: () -> Unit, onAssist: () -> Unit, onSettings: () -> Unit) {
+private fun HomeScreen(
+    onRunHearingTest: () -> Unit,
+    onAssist: () -> Unit,
+    onRemoteMic: () -> Unit,
+    onDinTest: () -> Unit,
+    onSettings: () -> Unit,
+    showDinTest: Boolean,
+) {
     Column(
         modifier =
         Modifier
@@ -104,7 +118,9 @@ private fun HomeScreen(onRunHearingTest: () -> Unit, onAssist: () -> Unit, onSet
         DisclaimerCard(modifier = Modifier.padding(top = 24.dp))
 
         HomeButton(stringResource(R.string.home_hearing_check), onRunHearingTest)
+        if (showDinTest) HomeButton(stringResource(R.string.home_din_test), onDinTest)
         HomeButton(stringResource(R.string.home_assist), onAssist)
+        HomeButton(stringResource(R.string.home_remote_mic), onRemoteMic)
         HomeButton(stringResource(R.string.home_settings), onSettings)
     }
 }
