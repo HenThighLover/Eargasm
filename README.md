@@ -69,6 +69,12 @@ personalized amplification profile, and boost quiet speech in real time.
 - 🔊 **Real-time hearing assist, per ear** — each ear gets its own fitted gain
   curve (stereo), with wide dynamic-range compression, a feedback/howl guard, and
   **live volume control while it runs**.
+- 📺 **Remote microphone** — set the phone next to the TV or across the table and
+  its sound streams to your earbuds (like Live Listen, but for any headphones).
+- 🎭 **Hear the difference** — play a sample sound and flip between the original
+  and the version shaped through your profile, mid-playback.
+- ⏱️ **Listening meter** — a relative gauge of how loud and how long assist has
+  been running, with a gentle reminder to take a break.
 - 🎚️ **Environment presets** — standard / conversation / outdoors, plus multiple
   saved profiles you can switch between, and a quick-settings tile for one-tap
   on/off.
