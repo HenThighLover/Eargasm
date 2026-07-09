@@ -155,6 +155,40 @@ dark-mode/high-contrast sessions (`AudiogramChart` gained an optional `darkTheme
 param, default unchanged). Emulator-verified in dark mode: preview correct,
 chooser opens, no crashes.
 
+### Phases E–H — Viral features ✅ code-complete (2026-07-09)
+- **E · "Hear the difference" A/B demo**: synthesized speech-like clip (pure
+  `DemoClipGenerator`, license-clean, deterministic, HF "consonant" bursts where
+  profiles boost most) rendered offline through the real `StereoAssistChain`
+  (`DemoRenderer`), streamed by a new stereo `AbPlayer` with a **mid-playback
+  raw/processed crossfade toggle** (pure `AbBufferSource`, JVM-tested). Card on
+  the results + assist screens; disabled while the mic loop runs.
+- **F · Remote microphone mode** (Live Listen for any earbuds): new home
+  destination reusing the assist pipeline with an `AssistMode` — raw mic tuning
+  (`UNPROCESSED`→`VOICE_RECOGNITION` fallback via new `InputTuning`), 20 ms
+  blocks, wake lock for screen-off, per-mode notification. **Headphones are a
+  hard requirement (no "Start anyway")** because the feedback guard is bypassed
+  in this mode (documented in SAFETY.md; limiter untouched). Works without a
+  profile via a flat-curve fallback. **Found & fixed en route:** the guard's
+  activation RMS (0.1) sat above what the WDRC can ever emit (≈0.05), so the
+  guard had been inert inside the live chain — activation is now calibrated to
+  post-WDRC levels (0.03) with a chain-level regression test.
+- **G · Listening meter** (Headphone-Safety-inspired): lock-free post-limiter
+  level tap (`OutputLevelMeter` + `MeteredAudioProcessor` wrapper — chain
+  untouched), pure `ExposureTracker` (energy-based relative units, 3 dB exchange
+  rate, explicitly NOT dB SPL), 1 s sampling loop in `AssistService`, daily
+  rollover persisted in DataStore, card on the assist screen with a gentle
+  ≥80% note.
+- **H · Digits-in-noise check**: complete Smits-style engine (`DinStaircase` +
+  `DigitsInNoiseScreening`, 9-digit alphabet excluding "7", simulated-listener
+  convergence test ±1.5 dB), `SpeechNoiseMixer` (noise-anchored, exact SNR,
+  ramped, clamped) and a pure `WavCodec`, plus the full keypad UI
+  (`DinTestScreen`). **Gated off the home screen until the maintainer records
+  the CC0 digit corpus** — procedure, naming, and caveats in docs/DIN.md. TTS
+  was rejected (device-dependent voices make results non-comparable).
+Full check green after each phase; release build verified on the emulator
+(demo play/toggle/stop, live meter, remote-mic headphone gate, DIN hidden).
+Remote-mic hardware items added to DEVICE_TESTING.md.
+
 ### Phase 3 — AirPods ❌ NOT STARTED
 The reverse-engineered (LibrePods/CAPod) protocol is `UNVERIFIED`. `:airpods-protocol`
 ships interfaces/models only. Needs real BLE/HCI capture on hardware and the

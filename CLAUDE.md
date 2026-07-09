@@ -36,6 +36,10 @@ Phases 0,1,2,4,5 plus consumer phases A,B are **built, unit-tested**. The app is
 | B User-demanded features (live gain, manual audiogram entry, multi-profile history, disconnect auto-stop + speaker warning, QS tile) | ✅ done 2026-07-03 |
 | C Differentiators (per-ear stereo assist, environment presets, experimental media EQ) | ✅ done 2026-07-03 |
 | D Shareable results card (first of viral phases D–H: share card, A/B demo, remote mic, loudness meter, digits-in-noise) | ✅ done 2026-07-09 |
+| E A/B "hear the difference" demo (synthesized clip through the real chains, mid-playback toggle) | ✅ done 2026-07-09 |
+| F Remote microphone mode (Live Listen equivalent; guard bypassed + headphones mandatory; also fixed the guard being inert post-WDRC) | ✅ done 2026-07-09 |
+| G Listening meter (relative exposure dashboard, post-limiter tap, daily rollover) | ✅ done 2026-07-09 |
+| H Digits-in-noise check | ✅ engine+UI done 2026-07-09; **hidden until maintainer records the CC0 digit corpus** ([docs/DIN.md](docs/DIN.md)) |
 | Calibration | ✅ comfort-ceiling proxy; true dB SPL needs a meter |
 
 **88 unit tests green; debug + release (R8) APKs build.** UI flows exercised on
@@ -122,9 +126,11 @@ export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home
 
 - **Run the Phase 1/2 device tests** ([docs/DEVICE_TESTING.md](docs/DEVICE_TESTING.md))
   on a real phone; fix whatever they surface. This is the launch gate.
-- **Remaining differentiators**: remote-mic mode framing, multi-band WDRC,
-  hardening the experimental media EQ (per-app session capture is the
-  non-deprecated alternative), localization, loudness-exposure timer.
+- **Record the DIN digit corpus** (maintainer's voice, CC0 — [docs/DIN.md](docs/DIN.md));
+  the listening-in-noise check unlocks itself once the WAVs land in res/raw.
+- **Remaining differentiators**: multi-band WDRC, hardening the experimental
+  media EQ (per-app session capture is the non-deprecated alternative),
+  localization. (Remote mic, A/B demo, listening meter, DIN engine: done 2026-07-09.)
 - **Launch sequence once device tests pass**: IzzyOnDroid → F-Droid (first
   hearing-assist app there) → Show HN (repo link + backstory comment) →
   r/fossdroid → hearingtracker forum → press tips (9to5Google, Android Police).

@@ -110,3 +110,22 @@ for adoption than anything else (see the launch notes).
 
 - Phase 2: real-time amplification latency + limiter behaviour under load.
 - Phase 3: AirPods BLE/L2CAP capture — see [PROTOCOL.md](PROTOCOL.md).
+
+## Remote microphone mode (Phase F) — hardware checklist
+
+Remote mic reuses the assist pipeline but its open questions are all hardware
+questions:
+
+1. **Raw mic tuning per OEM** — with the phone next to a TV, compare
+   intelligibility against assist mode; verify the platform noise suppressor is
+   actually off (steady music should not pump or get "eaten").
+2. **Screen off, 60 min** — start remote mic, lock the phone, leave it near the
+   TV for an hour (ideally on an aggressive-battery-manager OEM). The stream
+   must not stop or glitch; check battery drain.
+3. **Bluetooth disconnect mid-session** — take the earbuds out of range / pod
+   them: the session must stop (never fall back to the speaker).
+4. **Latency feel** — A2DP adds hundreds of ms; confirm speech from across the
+   room is useful even though TV lip-sync will visibly lag.
+5. **A/B demo toggle** — play the "hear the difference" sample on real earbuds;
+   confirm the mid-playback switch is click-free and the contrast is audible
+   with a boosted profile.
