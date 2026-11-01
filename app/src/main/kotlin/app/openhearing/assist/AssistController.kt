@@ -4,6 +4,7 @@ import app.openhearing.audiogram.GainCurve
 import app.openhearing.core.audio.AndroidAudioEngine
 import app.openhearing.core.audio.AudioFormat
 import app.openhearing.core.audio.InputTuning
+import app.openhearing.core.audio.dsp.ChannelRoutingMode
 import app.openhearing.core.audio.dsp.HearingAssistChain
 import app.openhearing.core.audio.dsp.LevelWindow
 import app.openhearing.core.audio.dsp.MeteredAudioProcessor
@@ -50,6 +51,7 @@ data class AssistConfig(
     val framesPerBlock: Int = DEFAULT_FRAMES_PER_BLOCK,
     val mode: AssistMode = AssistMode.HEARING_ASSIST,
     val inputTuning: InputTuning = InputTuning.COMMUNICATION,
+    val routingMode: ChannelRoutingMode = ChannelRoutingMode.NORMAL,
 ) {
     companion object {
         const val DEFAULT_SAMPLE_RATE_HZ = 48_000
@@ -103,6 +105,7 @@ constructor() {
 
     fun configure(newConfig: AssistConfig) {
         config = newConfig
+        chain?.routingMode = newConfig.routingMode
     }
 
     fun hasConfig(): Boolean = config != null
@@ -114,6 +117,14 @@ constructor() {
     fun setMasterGainDb(db: Double) {
         config = config?.copy(masterGainDb = db)
         chain?.setMasterGainDb(db)
+    }
+
+    /**
+     * Adjusts channel routing mode immediately, including while the engine is running.
+     */
+    fun setChannelRouting(mode: ChannelRoutingMode) {
+        config = config?.copy(routingMode = mode)
+        chain?.routingMode = mode
     }
 
     /** Build the per-ear chains from the current config and start the real-time loop. */
@@ -134,7 +145,9 @@ constructor() {
                 left = earChain(c.leftGainCurve),
                 right = earChain(c.rightGainCurve),
                 framesPerBlock = c.framesPerBlock,
-            )
+            ).apply {
+                routingMode = c.routingMode
+            }
         chain = newChain
         outputMeter.drain() // discard anything left from a previous session
         engine.start(

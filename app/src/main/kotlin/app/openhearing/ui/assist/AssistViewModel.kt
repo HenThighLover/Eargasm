@@ -6,6 +6,7 @@ import app.openhearing.assist.AssistController
 import app.openhearing.assist.AssistMode
 import app.openhearing.assist.AssistSessionFactory
 import app.openhearing.core.audio.dsp.AssistPreset
+import app.openhearing.core.audio.dsp.ChannelRoutingMode
 import app.openhearing.core.audio.dsp.ExposureTracker
 import app.openhearing.data.HearingProfile
 import app.openhearing.data.ProfileRepository
@@ -40,6 +41,7 @@ data class AssistUiState(
     val profiles: List<HearingProfile> = emptyList(),
     val activeProfileId: String? = null,
     val preset: AssistPreset = AssistPreset.STANDARD,
+    val routingMode: ChannelRoutingMode = ChannelRoutingMode.NORMAL,
     val exposure: ExposureUi = ExposureUi(),
 ) {
     companion object {
@@ -83,14 +85,25 @@ constructor(
 
     private val runtime = combine(session, exposureUi) { s, e -> s to e }
 
+    private val settingsFlow =
+        combine(
+            settingsRepository.observeAssistPreset(),
+            settingsRepository.observeChannelRouting(),
+        ) { presetName, routingName ->
+            val preset = AssistPreset.fromName(presetName)
+            val routing = runCatching { ChannelRoutingMode.valueOf(routingName) }
+                .getOrDefault(ChannelRoutingMode.NORMAL)
+            preset to routing
+        }
+
     val uiState: StateFlow<AssistUiState> =
         combine(
             profileRepository.observeActiveProfile(),
             profileRepository.observeProfiles(),
             runtime,
             masterGain,
-            settingsRepository.observeAssistPreset(),
-        ) { active, profiles, (sessionState, exposure), gain, presetName ->
+            settingsFlow,
+        ) { active, profiles, (sessionState, exposure), gain, (preset, routing) ->
             val (running, mode) = sessionState
             AssistUiState(
                 hasProfile = active?.audiogram?.thresholds?.isNotEmpty() == true,
@@ -99,7 +112,8 @@ constructor(
                 masterGainDb = active?.masterGainCapDb ?: gain,
                 profiles = profiles,
                 activeProfileId = active?.id,
-                preset = AssistPreset.fromName(presetName),
+                preset = preset,
+                routingMode = routing,
                 exposure = exposure,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AssistUiState())
@@ -134,6 +148,15 @@ constructor(
     fun setPreset(preset: AssistPreset) {
         viewModelScope.launch {
             settingsRepository.setAssistPreset(preset.name)
+            if (!controller.running.value) sessionFactory.prepare()
+        }
+    }
+
+    /** Applies immediately (also to a running session) and persists in DataStore. */
+    fun setChannelRouting(mode: ChannelRoutingMode) {
+        controller.setChannelRouting(mode)
+        viewModelScope.launch {
+            settingsRepository.setChannelRouting(mode.name)
             if (!controller.running.value) sessionFactory.prepare()
         }
     }

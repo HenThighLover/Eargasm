@@ -9,6 +9,7 @@ import app.openhearing.common.Ear
 import app.openhearing.common.Hertz
 import app.openhearing.core.audio.InputTuning
 import app.openhearing.core.audio.dsp.AssistPreset
+import app.openhearing.core.audio.dsp.ChannelRoutingMode
 import app.openhearing.core.audio.dsp.withPreset
 import app.openhearing.data.HearingProfile
 import app.openhearing.data.ProfileRepository
@@ -53,6 +54,9 @@ constructor(
         val (left, right) = earCurves(profile) ?: return false
         val ceiling = settingsRepository.observeComfortCeiling().first()
         val preset = AssistPreset.fromName(settingsRepository.observeAssistPreset().first())
+        val routingName = settingsRepository.observeChannelRouting().first()
+        val routing = runCatching { ChannelRoutingMode.valueOf(routingName) }
+            .getOrDefault(ChannelRoutingMode.NORMAL)
         controller.configure(
             AssistConfig(
                 leftGainCurve = left.withPreset(preset),
@@ -60,6 +64,7 @@ constructor(
                 masterGainDb = profile.masterGainCapDb,
                 ceilingLinear = ceiling,
                 highPassHz = preset.highPassHz,
+                routingMode = routing,
             ),
         )
         return true
@@ -71,6 +76,9 @@ constructor(
         val left = curves?.first ?: flatCurve()
         val right = curves?.second ?: flatCurve()
         val ceiling = settingsRepository.observeComfortCeiling().first()
+        val routingName = settingsRepository.observeChannelRouting().first()
+        val routing = runCatching { ChannelRoutingMode.valueOf(routingName) }
+            .getOrDefault(ChannelRoutingMode.NORMAL)
         controller.configure(
             AssistConfig(
                 leftGainCurve = left,
@@ -80,6 +88,7 @@ constructor(
                 framesPerBlock = AssistConfig.REMOTE_FRAMES_PER_BLOCK,
                 mode = AssistMode.REMOTE_MIC,
                 inputTuning = rawInputTuning(),
+                routingMode = routing,
             ),
         )
         return true

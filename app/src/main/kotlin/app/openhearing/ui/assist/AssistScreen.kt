@@ -49,6 +49,7 @@ import app.openhearing.R
 import app.openhearing.assist.AssistService
 import app.openhearing.common.SafetyConstants
 import app.openhearing.core.audio.dsp.AssistPreset
+import app.openhearing.core.audio.dsp.ChannelRoutingMode
 import app.openhearing.data.HearingProfile
 import app.openhearing.ui.common.headphonesConnected
 import app.openhearing.ui.demo.HearDifferenceCard
@@ -160,6 +161,11 @@ private fun AssistControls(
         onChange = viewModel::setPreset,
     )
 
+    ChannelRoutingSelector(
+        routingMode = state.routingMode,
+        onChange = viewModel::setChannelRouting,
+    )
+
     if (speakerWarning && !state.running) SpeakerWarning()
 
     if (state.remoteMicActive) {
@@ -235,6 +241,39 @@ private fun PresetSelector(preset: AssistPreset, running: Boolean, onChange: (As
             }
         }
     }
+}
+
+@Composable
+private fun ChannelRoutingSelector(
+    routingMode: ChannelRoutingMode,
+    onChange: (ChannelRoutingMode) -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Audio Channel Routing", style = MaterialTheme.typography.labelLarge)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                ChannelRoutingMode.entries.forEachIndexed { index, entry ->
+                    SegmentedButton(
+                        selected = entry == routingMode,
+                        onClick = { onChange(entry) },
+                        shape =
+                        SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = ChannelRoutingMode.entries.size,
+                        ),
+                    ) { Text(routingLabel(entry)) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun routingLabel(mode: ChannelRoutingMode): String = when (mode) {
+    ChannelRoutingMode.NORMAL -> "Normal"
+    ChannelRoutingMode.RIGHT_TO_LEFT -> "R → L"
+    ChannelRoutingMode.LEFT_TO_RIGHT -> "L → R"
+    ChannelRoutingMode.SWAP -> "Swap"
 }
 
 @Composable

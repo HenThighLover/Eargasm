@@ -32,6 +32,14 @@ interface SettingsRepository {
 
     suspend fun setAssistPreset(name: String)
 
+    /**
+     * Audio channel routing mode, stored by name (e.g. "NORMAL", "RIGHT_TO_LEFT",
+     * "LEFT_TO_RIGHT", "SWAP"). Unknown names fall back to "NORMAL".
+     */
+    fun observeChannelRouting(): Flow<String>
+
+    suspend fun setChannelRouting(mode: String)
+
     /** Experimental media EQ (profile applied to other apps' audio) on/off. */
     fun observeMediaEqEnabled(): Flow<Boolean>
 
