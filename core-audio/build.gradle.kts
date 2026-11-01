@@ -15,6 +15,14 @@ android {
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
         consumerProguardFiles("consumer-rules.pro")
+        ndk { abiFilters += listOf("arm64-v8a") } // add "x86_64" to run on an emulator
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     compileOptions {

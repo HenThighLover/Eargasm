@@ -9,7 +9,7 @@ import kotlin.math.pow
  * The full real-time hearing-assist signal chain (mono, v1):
  *
  * ```
- * input ─► EQ (audiogram gain) ─► WDRC ─► feedback guard ─► master gain ─► LIMITER ─► output
+ * input ─► [denoiser] ─► EQ (audiogram gain) ─► WDRC ─► feedback guard ─► master gain ─► LIMITER ─► output
  * ```
  *
  * The [LookaheadLimiter] is always the final stage, so nothing leaves above the
@@ -31,6 +31,8 @@ class HearingAssistChain(
      * On-body assist MUST keep it enabled. The limiter is unaffected either way.
      */
     feedbackGuardEnabled: Boolean = true,
+    /** Optional speech-preserving noise suppressor; runs first, on the raw mic signal. */
+    private val denoiser: SpeechDenoiser? = null,
 ) : AudioProcessor {
     private val highPass: Biquad? =
         highPassHz?.let { Biquad.highPass(it, HIGH_PASS_Q, sampleRateHz) }
@@ -57,6 +59,9 @@ class HearingAssistChain(
     }
 
     override fun process(buffer: FloatArray) {
+        // Clean the raw mic BEFORE any gain: the WDRC boosts quiet sounds and
+        // would otherwise amplify background noise.
+        denoiser?.process(buffer)
         highPass?.let { hp ->
             for (i in buffer.indices) {
                 buffer[i] = hp.processSample(buffer[i].toDouble()).toFloat()
@@ -73,6 +78,7 @@ class HearingAssistChain(
     }
 
     fun reset() {
+        denoiser?.reset()
         highPass?.reset()
         eq.reset()
         wdrc.reset()

@@ -65,6 +65,7 @@ constructor(
                 ceilingLinear = ceiling,
                 highPassHz = preset.highPassHz,
                 routingMode = routing,
+                                noiseSuppression = true,
             ),
         )
         return true
