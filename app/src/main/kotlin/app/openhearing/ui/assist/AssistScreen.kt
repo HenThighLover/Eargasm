@@ -123,7 +123,10 @@ fun AssistScreen(onBack: () -> Unit, viewModel: AssistViewModel = hiltViewModel(
                 speakerWarning = speakerWarning,
                 viewModel = viewModel,
                 onStart = ::startAssist,
-                onStop = { AssistService.stop(context) },
+                                onStop = {
+                    viewModel.stopNow()
+                    AssistService.stop(context)
+                },
             )
         }
 

@@ -77,8 +77,8 @@ class AssistService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            stopSelf()
+                if (intent?.action == ACTION_STOP) {
+            shutDown()
             return START_NOT_STICKY
         }
         val remote = intent?.getBooleanExtra(EXTRA_REMOTE_MIC, false) == true
@@ -92,13 +92,31 @@ class AssistService : Service() {
         return START_STICKY
     }
 
+        /**
+     * Remove the notification immediately, then stop the audio off the main
+     * thread, so a slow device teardown can never keep the service (or UI) stuck.
+     */
+    private fun shutDown() {
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        Thread(
+            {
+                try {
+                    controller.stopEngine()
+                } finally {
+                    stopSelf()
+                }
+            },
+            "OpenHearing-Stop",
+        ).start()
+    }
     override fun onDestroy() {
         unregisterReceiver(becomingNoisyReceiver)
         samplingJob?.cancel()
         // Persist whatever the sampling loop hadn't flushed yet, then shut down.
         val leftover = controller.exposure.value.unflushedUnits
-        if (leftover > 0) {
-            runBlocking { settingsRepository.addExposureUnits(leftover, todayEpochDay()) }
+                if (leftover > 0) {
+            val day = todayEpochDay()
+            CoroutineScope(Dispatchers.IO).launch { settingsRepository.addExposureUnits(leftover, day) }
         }
         controller.stopEngine()
         serviceScope.cancel()

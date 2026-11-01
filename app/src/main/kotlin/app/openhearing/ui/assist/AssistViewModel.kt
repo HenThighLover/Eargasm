@@ -161,8 +161,13 @@ constructor(
         }
     }
 
-    /** Prepare the controller config from the active profile. Returns true if ready. */
+        /** Prepare the controller config from the active profile. Returns true if ready. */
     suspend fun prepare(): Boolean = sessionFactory.prepare()
+
+    /** Stops audio immediately, independent of the service's lifecycle. */
+    fun stopNow() {
+        Thread({ controller.stopEngine() }, "OpenHearing-StopNow").start()
+    }
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
