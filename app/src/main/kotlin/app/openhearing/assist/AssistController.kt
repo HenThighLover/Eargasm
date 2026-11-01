@@ -10,6 +10,8 @@ import app.openhearing.core.audio.dsp.LevelWindow
 import app.openhearing.core.audio.dsp.MeteredAudioProcessor
 import app.openhearing.core.audio.dsp.OutputLevelMeter
 import app.openhearing.core.audio.dsp.StereoAssistChain
+import app.openhearing.core.audio.dsp.RnNoiseDenoiser
+import app.openhearing.core.audio.dsp.SpeechDenoiser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,6 +54,7 @@ data class AssistConfig(
     val mode: AssistMode = AssistMode.HEARING_ASSIST,
     val inputTuning: InputTuning = InputTuning.COMMUNICATION,
     val routingMode: ChannelRoutingMode = ChannelRoutingMode.NORMAL,
+        val noiseSuppression: Boolean = false,
 ) {
     companion object {
         const val DEFAULT_SAMPLE_RATE_HZ = 48_000
@@ -81,6 +84,7 @@ constructor() {
 
     @Volatile
     private var chain: StereoAssistChain? = null
+        private var denoisers: List<SpeechDenoiser> = emptyList()
 
     private val _running = MutableStateFlow(false)
     val running: StateFlow<Boolean> = _running.asStateFlow()
@@ -131,19 +135,35 @@ constructor() {
     fun startEngine() {
         val c = config ?: return
         if (engine.isRunning) return
-        fun earChain(curve: GainCurve) = HearingAssistChain(
-            gainCurve = curve,
-            sampleRateHz = c.sampleRateHz,
-            masterGainDb = c.masterGainDb,
-            ceilingLinear = c.ceilingLinear,
-            highPassHz = c.highPassHz,
-            // Guard off is a remote-mic-only relaxation; see AssistMode.
-            feedbackGuardEnabled = c.mode == AssistMode.HEARING_ASSIST,
-        )
+        val made = mutableListOf<SpeechDenoiser>()
+        fun earChain(curve: GainCurve): HearingAssistChain {
+            val dn =
+                if (c.noiseSuppression &&
+                    c.mode == AssistMode.HEARING_ASSIST &&
+                    c.sampleRateHz == RnNoiseDenoiser.SAMPLE_RATE_HZ
+                ) {
+                    RnNoiseDenoiser.createOrNull()?.also { made += it }
+                } else {
+                    null
+                }
+            return HearingAssistChain(
+                gainCurve = curve,
+                sampleRateHz = c.sampleRateHz,
+                masterGainDb = c.masterGainDb,
+                ceilingLinear = c.ceilingLinear,
+                highPassHz = c.highPassHz,
+                // Guard off is a remote-mic-only relaxation; see AssistMode.
+                feedbackGuardEnabled = c.mode == AssistMode.HEARING_ASSIST,
+                denoiser = dn,
+            )
+        }
+        val leftChain = earChain(c.leftGainCurve)
+        val rightChain = earChain(c.rightGainCurve)
+        denoisers = made
         val newChain =
             StereoAssistChain(
-                left = earChain(c.leftGainCurve),
-                right = earChain(c.rightGainCurve),
+                left = leftChain,
+                right = rightChain,
                 framesPerBlock = c.framesPerBlock,
             ).apply {
                 routingMode = c.routingMode
@@ -166,7 +186,9 @@ constructor() {
     }
 
     fun stopEngine() {
-        engine.stop()
+        
+                denoisers.forEach { it.release() }
+        denoisers = emptyList()
         chain = null
         _running.value = false
         _activeMode.value = null
