@@ -40,5 +40,5 @@ add_library(rnnoise_jni SHARED
     ${RN}/src/rnnoise_tables.c)
 
 target_include_directories(rnnoise_jni PRIVATE ${RN}/include ${RN}/src)
-target_compile_options(rnnoise_jni PRIVATE -O3 -ffast-math -DRNNOISE_BUILD)
+target_compile_options(rnnoise_jni PRIVATE -O3 -DRNNOISE_BUILD)
 target_link_libraries(rnnoise_jni log)
