@@ -2,6 +2,13 @@ package app.openhearing.core.audio.dsp
 
 import app.openhearing.core.audio.AudioProcessor
 
+enum class ChannelRoutingMode {
+    NORMAL,        // Left -> Left, Right -> Right
+    RIGHT_TO_LEFT, // Right audio played in Left ear
+    LEFT_TO_RIGHT, // Left audio played in Right ear
+    SWAP           // Left <-> Right swapped
+}
+
 /**
  * Per-ear stereo assist: one independent [HearingAssistChain] per channel, fed
  * from a mono microphone block duplicated into interleaved stereo ([L, R, L, R…]).
@@ -31,8 +38,7 @@ class StereoAssistChain(
             val chunk = minOf(leftScratch.size, totalFrames - frame)
             val base = frame * CHANNELS
             
-            // 1. De-interleave with input channel routing applied BEFORE per-ear DSP curves
-            // so the target ear's audiogram/limiter processes the routed audio properly.
+            // De-interleave with input channel routing applied BEFORE per-ear DSP curves
             for (i in 0 until chunk) {
                 val inLeft = buffer[base + CHANNELS * i]
                 val inRight = buffer[base + CHANNELS * i + 1]
@@ -42,25 +48,48 @@ class StereoAssistChain(
                         rightScratch[i] = inRight
                     }
                     ChannelRoutingMode.RIGHT_TO_LEFT -> {
-                        // Takes sound from the right side and routes it to the left side
                         leftScratch[i] = inRight
                         rightScratch[i] = inRight
                     }
                     ChannelRoutingMode.LEFT_TO_RIGHT -> {
-                        // Takes sound from the left side and routes it to the right side
                         leftScratch[i] = inLeft
                         rightScratch[i] = inLeft
                     }
                     ChannelRoutingMode.SWAP -> {
-                        // Full vice-versa swap: Right -> Left, Left -> Right
                         leftScratch[i] = inRight
                         rightScratch[i] = inLeft
                     }
                 }
             }
             
-            // A short partial block (final read) leaves a zero tail in the
-            // scratch buffers; the chains just see a moment of silence.
             for (i in chunk until leftScratch.size) {
                 leftScratch[i] = 0f
                 rightScratch[i] = 0f
+            }
+            
+            left.process(leftScratch)
+            right.process(rightScratch)
+            
+            for (i in 0 until chunk) {
+                buffer[base + CHANNELS * i] = leftScratch[i]
+                buffer[base + CHANNELS * i + 1] = rightScratch[i]
+            }
+            frame += chunk
+        }
+    }
+
+    /** Live master gain for both ears; each chain clamps to the safety cap. */
+    fun setMasterGainDb(db: Double) {
+        left.setMasterGainDb(db)
+        right.setMasterGainDb(db)
+    }
+
+    fun reset() {
+        left.reset()
+        right.reset()
+    }
+
+    private companion object {
+        const val CHANNELS = 2
+    }
+}
