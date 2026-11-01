@@ -19,31 +19,49 @@ import android.media.AudioFormat as PlatformAudioFormat
  * unit-tested here.
  */
 class AndroidAudioEngine : AudioEngine {
+    /** One per start(): stop() ends exactly this session's thread, even if start() follows. */
+    private class Session {
+        @Volatile
+        var active = true
+    }
+
     @Volatile
     private var running = false
     private var thread: Thread? = null
+    private var session: Session? = null
+
+    // Lets stop() wake a blocked AudioRecord.read from another thread.
+    @Volatile
+    private var activeRecord: AudioRecord? = null
 
     override val isRunning: Boolean get() = running
 
     override fun start(format: AudioFormat, processor: AudioProcessor) {
         if (running) return
         running = true
+        val s = Session()
+        session = s
         thread =
-            Thread({ runLoop(format, processor) }, "OpenHearing-Assist").apply {
+            Thread({ runLoop(format, processor, s) }, "OpenHearing-Assist").apply {
                 start()
             }
     }
 
-    override fun stop() {
+        override fun stop() {
+        session?.active = false
         running = false
+        // A blocking read() only returns when audio arrives; stopping the record
+        // from here makes it return now so the thread can exit.
+        activeRecord?.let { runCatching { it.stop() } }
         thread?.join(STOP_JOIN_TIMEOUT_MS)
         thread = null
+        session = null
     }
 
     // Fail-closed on a missing permission: we deliberately swallow and go silent
     // rather than risk any uncontrolled audio path.
     @Suppress("SwallowedException")
-    private fun runLoop(format: AudioFormat, processor: AudioProcessor) {
+        private fun runLoop(format: AudioFormat, processor: AudioProcessor, s: Session) {
         Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
 
         val channelOut =
@@ -98,9 +116,10 @@ class AndroidAudioEngine : AudioEngine {
             val block = FloatArray(format.framesPerBlock * inChannels)
             val out = FloatArray(format.framesPerBlock * format.channelCount)
             record.startRecording()
+                        activeRecord = record
             track.play()
 
-            while (running) {
+                        while (s.active) {
                 val readSamples = record.read(block, 0, block.size, AudioRecord.READ_BLOCKING)
                 if (readSamples <= 0) continue
                 val framesRead = readSamples / inChannels
@@ -114,6 +133,7 @@ class AndroidAudioEngine : AudioEngine {
             // Missing RECORD_AUDIO permission — fail closed (silent), never loud.
             running = false
         } finally {
+                    if (activeRecord === record) activeRecord = null
             record?.runCatchingRelease()
             track?.runCatchingRelease { stop() }
         }
@@ -201,6 +221,6 @@ class AndroidAudioEngine : AudioEngine {
     }
 
     private companion object {
-        const val STOP_JOIN_TIMEOUT_MS = 500L
+        const val STOP_JOIN_TIMEOUT_MS = 1500L
     }
 }

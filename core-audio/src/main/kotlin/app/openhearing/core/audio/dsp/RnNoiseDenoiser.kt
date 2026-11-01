@@ -13,37 +13,44 @@ interface SpeechDenoiser {
  * regardless of the engine's block size. Mono: use one instance per channel.
  */
 class RnNoiseDenoiser private constructor() : SpeechDenoiser {
+    private val lock = Any() // uncontended in practice; only guards release vs. process
     private var handle: Long = nativeCreate()
     private val inBuf = FloatArray(FRAME)
     private val outBuf = FloatArray(FRAME) // starts silent = the 10 ms of latency
     private var pos = 0
 
     override fun process(buffer: FloatArray) {
-        val h = handle
-        if (h == 0L) return
-        for (i in buffer.indices) {
-            inBuf[pos] = buffer[i] * SCALE
-            buffer[i] = outBuf[pos] * INV_SCALE
-            if (++pos == FRAME) {
-                nativeProcess(h, inBuf, outBuf)
-                pos = 0
+        synchronized(lock) {
+            val h = handle
+            if (h == 0L) return
+            for (i in buffer.indices) {
+                inBuf[pos] = buffer[i] * SCALE
+                buffer[i] = outBuf[pos] * INV_SCALE
+                if (++pos == FRAME) {
+                    nativeProcess(h, inBuf, outBuf)
+                    pos = 0
+                }
             }
         }
     }
 
     override fun reset() {
-        inBuf.fill(0f)
-        outBuf.fill(0f)
-        pos = 0
-        val old = handle
-        handle = nativeCreate() // fresh RNN state
-        if (old != 0L) nativeDestroy(old)
+        synchronized(lock) {
+            inBuf.fill(0f)
+            outBuf.fill(0f)
+            pos = 0
+            val old = handle
+            handle = nativeCreate() // fresh RNN state
+            if (old != 0L) nativeDestroy(old)
+        }
     }
 
     override fun release() {
-        val h = handle
-        handle = 0L
-        if (h != 0L) nativeDestroy(h)
+        synchronized(lock) {
+            val h = handle
+            handle = 0L
+            if (h != 0L) nativeDestroy(h)
+        }
     }
 
     private external fun nativeCreate(): Long
