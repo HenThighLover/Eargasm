@@ -119,9 +119,7 @@ constructor(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AssistUiState())
 
-<<<<<<< HEAD
-    /** Applies immediately (also to a running session) and persists on the
-=======
+
     /** Applies immediately (also to a running session) and persists on the active profile. */
     fun setMasterGain(db: Double) {
         masterGain.value = db
@@ -165,15 +163,14 @@ constructor(
         }
     }
 
-        /** Prepare the controller config from the active profile. Returns true if ready. */
-    fun stopNow() {
-        controller.stopEngine()
-    }
+    /** Prepare the controller config from the active profile. Returns true if ready. */
     suspend fun prepare(): Boolean = sessionFactory.prepare()
 
     /** Stops audio immediately, independent of the service's lifecycle. */
     fun stopNow() {
-        Thread({ controller.stopEngine() }, "OpenHearing-StopNow").start()
+        viewModelScope.launch(Dispatchers.IO) {
+            controller.stopEngine()
+        }
     }
 
     private companion object {
@@ -186,4 +183,3 @@ constructor(
             ((rmsDbfs - LEVEL_FLOOR_DBFS) / -LEVEL_FLOOR_DBFS).coerceIn(0.0, 1.0).toFloat()
     }
 }
->>>>>>> a33a5800ea807fa612d42e19c12d2be87bc7cfdb
