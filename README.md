@@ -93,7 +93,7 @@ personalized amplification profile, and boost quiet speech in real time.
 ## How to use
 
 1. **Install** — grab the APK from
-   [Releases](https://github.com/HMAKT99/OpenHearing/releases/latest) (or add this
+   [Releases](https://github.com/HenThighLover/Eargasm/releases) (or add this
    repo to [Obtainium](https://github.com/ImranR98/Obtainium) for auto-updates;
    F-Droid submission in progress).
 2. **Read & accept** the safety disclaimer on first launch.
