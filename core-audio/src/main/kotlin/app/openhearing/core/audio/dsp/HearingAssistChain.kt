@@ -46,6 +46,9 @@ class HearingAssistChain(
         }
     private val limiter = LookaheadLimiter(ceilingLinear, sampleRateHz)
 
+    @Volatile
+    private var released = false
+
     // Master gain can never exceed the safety cap, and never attenuates below unity
     // here (the user's volume cap scales this separately, upstream). Volatile so the
     // UI thread can adjust it while the audio thread keeps processing; the limiter
@@ -59,9 +62,17 @@ class HearingAssistChain(
     }
 
     override fun process(buffer: FloatArray) {
+        if (released) {
+            buffer.fill(0f)
+            return
+        }
         // Clean the raw mic BEFORE any gain: the WDRC boosts quiet sounds and
         // would otherwise amplify background noise.
         denoiser?.process(buffer)
+        if (released) {
+            buffer.fill(0f)
+            return
+        }
         highPass?.let { hp ->
             for (i in buffer.indices) {
                 buffer[i] = hp.processSample(buffer[i].toDouble()).toFloat()
@@ -84,6 +95,11 @@ class HearingAssistChain(
         wdrc.reset()
         guard?.reset()
         limiter.reset()
+    }
+
+    fun release() {
+        released = true
+        denoiser?.release()
     }
 
     companion object {

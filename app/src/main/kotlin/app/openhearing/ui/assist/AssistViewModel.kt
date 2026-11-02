@@ -162,6 +162,9 @@ constructor(
     }
 
         /** Prepare the controller config from the active profile. Returns true if ready. */
+    fun stopNow() {
+        controller.stopEngine()
+    }
     suspend fun prepare(): Boolean = sessionFactory.prepare()
 
     /** Stops audio immediately, independent of the service's lifecycle. */

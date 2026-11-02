@@ -22,7 +22,11 @@ class RnNoiseDenoiser private constructor() : SpeechDenoiser {
     override fun process(buffer: FloatArray) {
         synchronized(lock) {
             val h = handle
-            if (h == 0L) return
+            if (h == 0L) {
+                // Released/stopped: output strict silence, NEVER pass raw unsuppressed audio!
+                buffer.fill(0f)
+                return
+            }
             for (i in buffer.indices) {
                 inBuf[pos] = buffer[i] * SCALE
                 buffer[i] = outBuf[pos] * INV_SCALE
@@ -40,13 +44,18 @@ class RnNoiseDenoiser private constructor() : SpeechDenoiser {
             outBuf.fill(0f)
             pos = 0
             val old = handle
-            handle = nativeCreate() // fresh RNN state
-            if (old != 0L) nativeDestroy(old)
+            if (old != 0L) {
+                handle = nativeCreate() // fresh RNN state
+                nativeDestroy(old)
+            }
         }
     }
 
     override fun release() {
         synchronized(lock) {
+            inBuf.fill(0f)
+            outBuf.fill(0f)
+            pos = 0
             val h = handle
             handle = 0L
             if (h != 0L) nativeDestroy(h)
@@ -63,11 +72,17 @@ class RnNoiseDenoiser private constructor() : SpeechDenoiser {
         private const val SCALE = 32768f
         private const val INV_SCALE = 1f / 32768f
 
+        @Volatile
+        private var libraryLoaded = false
+
         /** Null if the native library isn't available, so assist still works without it. */
         fun createOrNull(): RnNoiseDenoiser? = try {
-            System.loadLibrary("rnnoise_jni")
+            if (!libraryLoaded) {
+                System.loadLibrary("rnnoise_jni")
+                libraryLoaded = true
+            }
             RnNoiseDenoiser()
-        } catch (_: UnsatisfiedLinkError) {
+        } catch (_: Throwable) {
             null
         }
     }
