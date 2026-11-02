@@ -5,6 +5,7 @@ import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
 import android.os.Process
+import android.util.Log
 import android.media.AudioFormat as PlatformAudioFormat
 
 /**
@@ -23,45 +24,74 @@ class AndroidAudioEngine : AudioEngine {
     private class Session {
         @Volatile
         var active = true
+
+        @Volatile
+        var record: AudioRecord? = null
+
+        @Volatile
+        var track: AudioTrack? = null
     }
+
+    private val lock = Any()
 
     @Volatile
     private var running = false
-    private var thread: Thread? = null
-    private var session: Session? = null
 
-    // Lets stop() wake a blocked AudioRecord.read from another thread.
     @Volatile
-    private var activeRecord: AudioRecord? = null
+    private var session: Session? = null
+    private var thread: Thread? = null
 
     override val isRunning: Boolean get() = running
 
     override fun start(format: AudioFormat, processor: AudioProcessor) {
-        if (running) return
-        running = true
-        val s = Session()
-        session = s
-        thread =
-            Thread({ runLoop(format, processor, s) }, "OpenHearing-Assist").apply {
-                start()
-            }
+        synchronized(lock) {
+            if (running) return
+            running = true
+            val s = Session()
+            session = s
+            thread =
+                Thread({ runLoop(format, processor, s) }, "OpenHearing-Assist").apply {
+                    start()
+                }
+        }
     }
 
-        override fun stop() {
-        session?.active = false
-        running = false
-        // A blocking read() only returns when audio arrives; stopping the record
-        // from here makes it return now so the thread can exit.
-        activeRecord?.let { runCatching { it.stop() } }
-        thread?.join(STOP_JOIN_TIMEOUT_MS)
-        thread = null
-        session = null
+    override fun stop() {
+        val s: Session?
+        val t: Thread?
+        synchronized(lock) {
+            s = session
+            t = thread
+            s?.active = false
+            running = false
+            session = null
+            thread = null
+        }
+        // Wake the audio thread out of whichever blocking call it is in.
+        s?.record?.let { runCatching { it.stop() } }
+        s?.track?.let {
+            runCatching { it.pause() }
+            runCatching { it.flush() }
+        }
+        t?.join(STOP_JOIN_TIMEOUT_MS)
+        if (t != null && t.isAlive) {
+            Log.w(TAG, "Assist thread still alive after stop; force-releasing audio devices")
+            s?.record?.let { runCatching { it.release() } }
+            s?.track?.let { runCatching { it.release() } }
+            t.join(FORCE_JOIN_TIMEOUT_MS)
+            if (t.isAlive) Log.e(TAG, "Assist thread STILL alive after force release")
+        }
+    }
+
+    private fun markStopped(s: Session) {
+        s.active = false
+        synchronized(lock) { if (session === s) running = false }
     }
 
     // Fail-closed on a missing permission: we deliberately swallow and go silent
     // rather than risk any uncontrolled audio path.
     @Suppress("SwallowedException")
-        private fun runLoop(format: AudioFormat, processor: AudioProcessor, s: Session) {
+    private fun runLoop(format: AudioFormat, processor: AudioProcessor, s: Session) {
         Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
 
         val channelOut =
@@ -88,9 +118,10 @@ class AndroidAudioEngine : AudioEngine {
             val isStereoInput = stereoRecord != null
             record = stereoRecord ?: buildAudioRecord(format, PlatformAudioFormat.CHANNEL_IN_MONO, encoding, isStereo = false)
             if (record == null) {
-                running = false
+                markStopped(s)
                 return
             }
+            s.record = record
 
             track =
                 AudioTrack.Builder()
@@ -111,29 +142,37 @@ class AndroidAudioEngine : AudioEngine {
                     .setTransferMode(AudioTrack.MODE_STREAM)
                     .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
                     .build()
+            s.track = track
+
+            // Stop was pressed while we were still setting up.
+            if (!s.active) return
 
             val inChannels = if (isStereoInput) 2 else 1
             val block = FloatArray(format.framesPerBlock * inChannels)
             val out = FloatArray(format.framesPerBlock * format.channelCount)
             record.startRecording()
-                        activeRecord = record
+            
             track.play()
 
-                        while (s.active) {
+            while (s.active) {
                 val readSamples = record.read(block, 0, block.size, AudioRecord.READ_BLOCKING)
+                if (!s.active) break
                 if (readSamples <= 0) continue
                 val framesRead = readSamples / inChannels
                 if (framesRead <= 0) continue
 
                 val toProcess = prepareBlock(format, isStereoInput, block, out, framesRead)
                 processor.process(toProcess)
+                // Never let audio out after Stop, even if the chain was already torn down.
+                if (!s.active) break
                 track.write(toProcess, 0, framesRead * format.channelCount, AudioTrack.WRITE_BLOCKING)
             }
         } catch (e: SecurityException) {
             // Missing RECORD_AUDIO permission — fail closed (silent), never loud.
-            running = false
+            markStopped(s)
         } finally {
-                    if (activeRecord === record) activeRecord = null
+            s.record = null
+            s.track = null
             record?.runCatchingRelease()
             track?.runCatchingRelease { stop() }
         }
@@ -221,6 +260,8 @@ class AndroidAudioEngine : AudioEngine {
     }
 
     private companion object {
+        const val TAG = "OpenHearingEngine"
         const val STOP_JOIN_TIMEOUT_MS = 1500L
+        const val FORCE_JOIN_TIMEOUT_MS = 1000L
     }
 }
