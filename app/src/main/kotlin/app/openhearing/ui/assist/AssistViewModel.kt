@@ -12,6 +12,7 @@ import app.openhearing.data.HearingProfile
 import app.openhearing.data.ProfileRepository
 import app.openhearing.data.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -118,6 +119,9 @@ constructor(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AssistUiState())
 
+<<<<<<< HEAD
+    /** Applies immediately (also to a running session) and persists on the
+=======
     /** Applies immediately (also to a running session) and persists on the active profile. */
     fun setMasterGain(db: Double) {
         masterGain.value = db
@@ -182,3 +186,4 @@ constructor(
             ((rmsDbfs - LEVEL_FLOOR_DBFS) / -LEVEL_FLOOR_DBFS).coerceIn(0.0, 1.0).toFloat()
     }
 }
+>>>>>>> a33a5800ea807fa612d42e19c12d2be87bc7cfdb

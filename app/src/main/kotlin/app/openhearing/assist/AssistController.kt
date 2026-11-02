@@ -36,6 +36,7 @@ data class AssistConfig(
     val framesPerBlock: Int = DEFAULT_FRAMES_PER_BLOCK,
     val mode: AssistMode = AssistMode.HEARING_ASSIST,
     val inputTuning: InputTuning = InputTuning.COMMUNICATION,
+    val noiseSuppression: Boolean = true,
     val routingMode: ChannelRoutingMode = ChannelRoutingMode.NORMAL,
 ) {
     companion object {
@@ -106,7 +107,7 @@ constructor() {
             ceilingLinear = c.ceilingLinear,
             highPassHz = c.highPassHz,
             feedbackGuardEnabled = c.mode == AssistMode.HEARING_ASSIST,
-            denoiser = if (c.sampleRateHz == RnNoiseDenoiser.SAMPLE_RATE_HZ) {
+            denoiser = if (c.noiseSuppression && c.sampleRateHz == RnNoiseDenoiser.SAMPLE_RATE_HZ) {
                 RnNoiseDenoiser.createOrNull()
             } else {
                 null
