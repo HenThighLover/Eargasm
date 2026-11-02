@@ -94,6 +94,7 @@ personalized amplification profile, and boost quiet speech in real time.
 
 1. **Install** — grab the APK from
    [Releases](https://github.com/HenThighLover/Eargasm/releases) (or add this
+>>>>>>> ff6300dfec0bc9ce65c4f3a273b2b1bbd47a3ad3
    repo to [Obtainium](https://github.com/ImranR98/Obtainium) for auto-updates;
    F-Droid submission in progress).
 2. **Read & accept** the safety disclaimer on first launch.
