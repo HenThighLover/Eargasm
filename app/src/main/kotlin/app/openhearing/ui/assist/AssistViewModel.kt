@@ -26,20 +26,16 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
-/** Relative listening-meter values for the card; see ExposureTracker. */
 data class ExposureUi(
     val sessionSeconds: Long = 0,
     val todayPercent: Int = 0,
-    /** Last-second output level mapped 0..1 for the live bar. */
     val levelFraction: Float = 0f,
     val showHighNote: Boolean = false,
 )
 
 data class AssistUiState(
     val hasProfile: Boolean = false,
-    /** True when an on-body assist session is live (not a remote-mic one). */
     val running: Boolean = false,
-    /** True when a remote-mic session owns the shared pipeline instead. */
     val remoteMicActive: Boolean = false,
     val masterGainDb: Double = DEFAULT_MASTER_GAIN_DB,
     val profiles: List<HearingProfile> = emptyList(),
@@ -53,13 +49,6 @@ data class AssistUiState(
     }
 }
 
-/**
- * Drives assist mode: prepares the session via [AssistSessionFactory], reflects
- * run state, and manages the saved profiles. Master gain changes apply live to a
- * running session (the chain clamps them; the limiter stays downstream). Actually
- * starting/stopping the foreground service is done by the screen (it needs a
- * Context + permissions).
- */
 @HiltViewModel
 class AssistViewModel
 @Inject
@@ -125,7 +114,6 @@ constructor(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AssistUiState())
 
-    /** Applies immediately (also to a running session) and persists on the active profile. */
     fun setMasterGain(db: Double) {
         masterGain.value = db
         controller.setMasterGainDb(db)
@@ -140,8 +128,6 @@ constructor(
     fun selectProfile(profileId: String) {
         viewModelScope.launch {
             profileRepository.setActive(profileId)
-            // A running session keeps its old curve; restarting applies the new
-            // profile. Stop here so the user never hears an unexpected switch.
             if (controller.running.value) return@launch
             sessionFactory.prepare()
         }
@@ -151,7 +137,6 @@ constructor(
         viewModelScope.launch { profileRepository.delete(profileId) }
     }
 
-    /** Persisted; a running session keeps its preset until restarted (like profiles). */
     fun setPreset(preset: AssistPreset) {
         viewModelScope.launch {
             settingsRepository.setAssistPreset(preset.name)
@@ -159,11 +144,39 @@ constructor(
         }
     }
 
-    /** Applies immediately (also to a running session) and persists in DataStore. */
     fun setChannelRouting(mode: ChannelRoutingMode) {
         controller.setChannelRouting(mode)
         viewModelScope.launch {
             settingsRepository.setChannelRouting(mode.name)
             if (!controller.running.value) sessionFactory.prepare()
         }
-        
+    }
+
+    fun setTranscriptionEnabled(enabled: Boolean) {
+        transcriptionController.setEnabled(enabled)
+    }
+
+    fun setTranscriptionLanguage(lang: TranscriptionLang) {
+        transcriptionController.setLanguage(lang)
+    }
+
+    fun clearTranscription() {
+        transcriptionController.clearTranscript()
+    }
+
+    suspend fun prepare(): Boolean = sessionFactory.prepare()
+
+    fun stopNow() {
+        viewModelScope.launch(Dispatchers.IO) {
+            controller.stopEngine()
+        }
+    }
+
+    private companion object {
+        const val STOP_TIMEOUT_MS = 5_000L
+        const val LEVEL_FLOOR_DBFS = -60.0
+
+        fun levelFraction(rmsDbfs: Double): Float =
+            ((rmsDbfs - LEVEL_FLOOR_DBFS) / -LEVEL_FLOOR_DBFS).coerceIn(0.0, 1.0).toFloat()
+    }
+}
