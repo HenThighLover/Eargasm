@@ -1,5 +1,7 @@
 package app.openhearing.assist
 
+import app.openhearing.core.audio.dsp.AsrAudioTap
+import app.openhearing.core.audio.dsp.TappedAudioProcessor
 import app.openhearing.audiogram.GainCurve
 import app.openhearing.core.audio.AndroidAudioEngine
 import app.openhearing.core.audio.AudioFormat
@@ -65,6 +67,7 @@ constructor() {
     val activeMode: StateFlow<AssistMode?> = _activeMode.asStateFlow()
 
     private val outputMeter = OutputLevelMeter()
+    val asrTap = AsrAudioTap()
 
     private val _exposure = MutableStateFlow(ExposureSnapshot())
     val exposure: StateFlow<ExposureSnapshot> = _exposure.asStateFlow()
@@ -123,14 +126,14 @@ constructor() {
             }
         chain = newChain
         outputMeter.drain()
-        engine.start(
+engine.start(
             AudioFormat(
                 c.sampleRateHz,
                 channelCount = 2,
                 framesPerBlock = c.framesPerBlock,
                 inputTuning = c.inputTuning,
             ),
-            MeteredAudioProcessor(newChain, outputMeter),
+            TappedAudioProcessor(MeteredAudioProcessor(newChain, outputMeter), asrTap),
         )
         _running.value = engine.isRunning
         _activeMode.value = if (engine.isRunning) c.mode else null

@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +19,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
@@ -25,6 +28,8 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -47,6 +52,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.openhearing.R
 import app.openhearing.assist.AssistService
+import app.openhearing.assist.TranscriptionLang
+import app.openhearing.assist.TranscriptionUiState
 import app.openhearing.common.SafetyConstants
 import app.openhearing.core.audio.dsp.AssistPreset
 import app.openhearing.core.audio.dsp.ChannelRoutingMode
@@ -65,6 +72,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AssistScreen(onBack: () -> Unit, viewModel: AssistViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val transcription by viewModel.transcriptionState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var speakerWarning by remember { mutableStateOf(false) }
@@ -87,6 +95,14 @@ fun AssistScreen(onBack: () -> Unit, viewModel: AssistViewModel = hiltViewModel(
             val micGranted = result[Manifest.permission.RECORD_AUDIO] == true
             if (micGranted) {
                 if (headphonesConnected(context)) proceedStart() else speakerWarning = true
+            }
+        }
+
+    // Separate permission launcher for standalone transcription (when Assist is OFF)
+    val transcriptionMicLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                viewModel.setTranscriptionEnabled(true)
             }
         }
 
@@ -130,7 +146,25 @@ fun AssistScreen(onBack: () -> Unit, viewModel: AssistViewModel = hiltViewModel(
             )
         }
 
-        Spacer(Modifier.padding(4.dp))
+        // Offline Live Transcription Card (works both WITH Assist and WITHOUT Assist)
+        LiveTranscriptionCard(
+            state = transcription,
+            assistRunning = state.running,
+            onToggle = { wantEnabled ->
+                val micGranted =
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                        PackageManager.PERMISSION_GRANTED
+                if (wantEnabled && !micGranted) {
+                    transcriptionMicLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                } else {
+                    viewModel.setTranscriptionEnabled(wantEnabled)
+                }
+            },
+            onSelectLanguage = viewModel::setTranscriptionLanguage,
+            onClear = viewModel::clearTranscription,
+        )
+
+        Spacer(Modifier.padding(8.dp))
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.back))
         }
@@ -215,6 +249,134 @@ private fun AssistControls(
     }
 
     HearDifferenceCard(modifier = Modifier.padding(top = 8.dp))
+}
+
+@Composable
+private fun LiveTranscriptionCard(
+    state: TranscriptionUiState,
+    assistRunning: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onSelectLanguage: (TranscriptionLang) -> Unit,
+    onClear: () -> Unit,
+) {
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Offline Live Transcription",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = if (state.enabled) {
+                            if (assistRunning) {
+                                "Active WITH Hearing Assist (shared cleaned mic)"
+                            } else {
+                                "Active WITHOUT Hearing Assist (standalone mic)"
+                            }
+                        } else {
+                            if (assistRunning) {
+                                "Toggle ON to transcribe while using Hearing Assist"
+                            } else {
+                                "Toggle ON for standalone captions (Assist stays OFF)"
+                            }
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = state.enabled,
+                    onCheckedChange = onToggle,
+                )
+            }
+
+            // Language selector: English | മലയാളം | EN + മലയാളം
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                TranscriptionLang.entries.forEach { lang ->
+                    FilterChip(
+                        selected = state.language == lang,
+                        onClick = { onSelectLanguage(lang) },
+                        label = { Text(lang.label) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            if (state.enabled) {
+                if (state.statusMessage.isNotBlank()) {
+                    Text(
+                        text = state.statusMessage,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (state.modelReady) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        },
+                    )
+                }
+
+                Surface(
+                    tonalElevation = 2.dp,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 96.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        val hasContent = state.historyText.isNotBlank() || state.liveText.isNotBlank()
+                        if (!hasContent) {
+                            Text(
+                                text = "Listening for speech…",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            if (state.historyText.isNotBlank()) {
+                                Text(
+                                    text = state.historyText,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                            if (state.liveText.isNotBlank()) {
+                                Text(
+                                    text = state.liveText,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (state.historyText.isNotBlank() || state.liveText.isNotBlank()) {
+                    OutlinedButton(
+                        onClick = onClear,
+                        modifier = Modifier.align(Alignment.End),
+                    ) {
+                        Text("Clear text")
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

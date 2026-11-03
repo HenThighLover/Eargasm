@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import app.openhearing.assist.AssistController
 import app.openhearing.assist.AssistMode
 import app.openhearing.assist.AssistSessionFactory
+import app.openhearing.assist.SherpaTranscriptionController
+import app.openhearing.assist.TranscriptionLang
+import app.openhearing.assist.TranscriptionUiState
 import app.openhearing.core.audio.dsp.AssistPreset
 import app.openhearing.core.audio.dsp.ChannelRoutingMode
 import app.openhearing.core.audio.dsp.ExposureTracker
@@ -65,8 +68,11 @@ constructor(
     private val profileRepository: ProfileRepository,
     private val settingsRepository: SettingsRepository,
     private val sessionFactory: AssistSessionFactory,
+    private val transcriptionController: SherpaTranscriptionController,
 ) : ViewModel() {
     private val masterGain = MutableStateFlow(AssistUiState.DEFAULT_MASTER_GAIN_DB)
+
+    val transcriptionState: StateFlow<TranscriptionUiState> = transcriptionController.state
 
     private val session =
         combine(controller.running, controller.activeMode) { running, mode -> running to mode }
@@ -119,7 +125,6 @@ constructor(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AssistUiState())
 
-
     /** Applies immediately (also to a running session) and persists on the active profile. */
     fun setMasterGain(db: Double) {
         masterGain.value = db
@@ -161,25 +166,4 @@ constructor(
             settingsRepository.setChannelRouting(mode.name)
             if (!controller.running.value) sessionFactory.prepare()
         }
-    }
-
-    /** Prepare the controller config from the active profile. Returns true if ready. */
-    suspend fun prepare(): Boolean = sessionFactory.prepare()
-
-    /** Stops audio immediately, independent of the service's lifecycle. */
-    fun stopNow() {
-        viewModelScope.launch(Dispatchers.IO) {
-            controller.stopEngine()
-        }
-    }
-
-    private companion object {
-        const val STOP_TIMEOUT_MS = 5_000L
-
-        // Map the last-second RMS (dBFS) onto a 0..1 bar; −60 dBFS ≈ silence.
-        const val LEVEL_FLOOR_DBFS = -60.0
-
-        fun levelFraction(rmsDbfs: Double): Float =
-            ((rmsDbfs - LEVEL_FLOOR_DBFS) / -LEVEL_FLOOR_DBFS).coerceIn(0.0, 1.0).toFloat()
-    }
-}
+        

@@ -31,6 +31,11 @@ android {
         versionCode = 2
         versionName = "0.2.0-alpha01"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Restrict to arm64-v8a to trim unnecessary architectures and keep APK size small with bundled ONNX models
+        ndk {
+            abiFilters.addAll(setOf("arm64-v8a"))
+        }
     }
 
     signingConfigs {
@@ -104,4 +109,5 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
 }

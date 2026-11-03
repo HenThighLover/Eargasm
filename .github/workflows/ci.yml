@@ -23,11 +23,27 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
+      - name: Download sherpa-onnx Android AAR
+        run: |
+          mkdir -p app/libs
+          curl -L -o app/libs/sherpa-onnx-2.0.1.aar \
+            https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.1/sherpa-onnx-2.0.1.aar
+
+      - name: Download Offline ASR Models
+        run: |
+          mkdir -p app/src/main/assets/sherpa_models/en
+          mkdir -p app/src/main/assets/sherpa_models/ml
+          mkdir -p app/src/main/assets/sherpa_models/bilingual
+          # If you want GitHub Actions to fetch models automatically, add your direct download URLs here:
+          # curl -L -o app/src/main/assets/sherpa_models/en/tokens.txt "YOUR_DIRECT_URL_HERE"
+          # curl -L -o app/src/main/assets/sherpa_models/en/encoder.int8.onnx "YOUR_DIRECT_URL_HERE"
+          # curl -L -o app/src/main/assets/sherpa_models/en/decoder.int8.onnx "YOUR_DIRECT_URL_HERE"
+
       - name: Build Debug APK
         run: ./gradlew assembleDebug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Eargasm-Debug-APK
+          name: OpenHearing-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
